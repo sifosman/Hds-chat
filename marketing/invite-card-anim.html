@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 1080px; height: 1350px; }
+  body {
+    font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    background:
+      radial-gradient(900px 700px at 50% 62%, rgba(227,36,43,.28), rgba(227,36,43,0) 62%),
+      radial-gradient(1200px 900px at 50% -10%, #22333f, #0d151b 70%);
+    color: #e9edef;
+    display: flex; flex-direction: column; align-items: center;
+    overflow: hidden;
+  }
+
+  /* ---------- header ---------- */
+  .head { width: 100%; display: flex; align-items: center; justify-content: space-between; padding: 54px 64px 0; }
+  .head img { width: 240px; }
+  .pill-new { border: 1.5px solid rgba(255,255,255,.35); color: #ffd7d8; font-size: 22px; font-weight: 600; letter-spacing: .18em; padding: 8px 20px; border-radius: 999px; }
+
+  .headline { text-align: center; margin-top: 26px; }
+  .headline h1 { font-size: 64px; font-weight: 800; letter-spacing: -.02em; }
+  .headline h1 em { font-style: normal; color: #ff5a60; }
+  .headline p { margin-top: 10px; font-size: 30px; color: #b8c4cc; font-weight: 500; }
+  .headline p b { color: #e9edef; font-weight: 600; }
+
+  /* ---------- phone ---------- */
+  .phone-wrap { flex: 1; display: flex; align-items: center; position: relative; }
+  .halo { position: absolute; inset: -60px -120px; background: radial-gradient(closest-side, rgba(227,36,43,.38), rgba(227,36,43,0) 72%); animation: halo 7s ease-in-out infinite; }
+  @keyframes halo { 0%,100% { opacity: .5; } 50% { opacity: .95; } }
+  .phone {
+    width: 480px; height: 890px;
+    background: #06090b;
+    border-radius: 58px;
+    padding: 13px;
+    box-shadow: 0 40px 90px rgba(0,0,0,.55), 0 0 0 2px #2a343c, inset 0 0 0 2px #161d22;
+    position: relative;
+  }
+  .screen { width: 100%; height: 100%; border-radius: 46px; overflow: hidden; background: #efeae2; display: flex; flex-direction: column; }
+
+  .statusbar { height: 34px; background: #e3242b; display: flex; align-items: center; justify-content: space-between; padding: 0 26px; color: #fff; font-size: 15px; font-weight: 600; }
+  .statusbar .sic { display: flex; gap: 6px; align-items: center; }
+  .statusbar svg { display: block; }
+
+  .top { display: flex; align-items: center; gap: 12px; padding: 8px 14px 12px; background: #e3242b; color: #fff; }
+  .avatar { width: 42px; height: 42px; border-radius: 50%; background: #000; object-fit: contain; }
+  .top-title { font-weight: 600; font-size: 18px; }
+  .top-sub { font-size: 13px; opacity: .9; display: flex; align-items: center; gap: 5px; }
+  .top-sub i { width: 8px; height: 8px; border-radius: 50%; background: #6ee7a0; display: inline-block; }
+
+  .messages { flex: 1; padding: 10px 10px 6px; overflow: hidden; }
+  .day { text-align: center; margin: 6px 0 10px; }
+  .day span { background: #fff; color: #667781; font-size: 12px; padding: 4px 10px; border-radius: 8px; box-shadow: 0 1px .5px rgba(0,0,0,.1); }
+
+  .row { display: flex; flex-direction: column; margin: 3px 0; }
+  .row.mine { align-items: flex-end; }
+  .row.theirs { align-items: flex-start; }
+  .bubble { max-width: 86%; padding: 7px 9px 4px; border-radius: 10px; background: #fff; box-shadow: 0 1px .5px rgba(0,0,0,.13); }
+  .mine .bubble { background: #dcebff; }
+  .sender { font-size: 12.5px; font-weight: 600; color: #e3242b; margin-bottom: 2px; }
+  .text { font-size: 14.5px; line-height: 1.36; color: #111b21; white-space: pre-wrap; }
+  .meta { display: flex; justify-content: flex-end; align-items: center; gap: 3px; font-size: 11px; color: #8696a0; margin-top: 2px; }
+  .tick { color: #34b7f1; font-size: 12px; letter-spacing: -2px; }
+
+  .carousel { display: flex; gap: 8px; margin: 4px -2px 4px; }
+  .card { flex: 0 0 148px; background: #fff; border: 1px solid #e2e2e2; border-radius: 10px; overflow: hidden; }
+  .card .imgbox { position: relative; height: 96px; background: #ddd; }
+  .card .imgbox img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .card .imgbox.fit { background: #f4f2ee; }
+  .card .imgbox.fit img { object-fit: contain; padding: 5px; }
+  .tag { position: absolute; top: 6px; left: 6px; background: #e3242b; color: #fff; font-size: 10px; font-weight: 700; letter-spacing: .05em; padding: 2px 7px; border-radius: 6px; animation: tagpulse 1.6s ease-in-out infinite; }
+  @keyframes tagpulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.1); } }
+  .tag.deal { background: #1b4f9c; animation: none; }
+  .card-text { padding: 6px 8px 8px; font-size: 12.5px; color: #111b21; }
+  .card-text .nm { font-weight: 600; display: block; }
+  .card-text .pr { margin-top: 3px; font-size: 14px; font-weight: 800; color: #b81c22; }
+  .card-text .pr s { color: #8696a0; font-weight: 500; font-size: 11.5px; margin-right: 5px; }
+  .card-text .u { font-weight: 500; font-size: 11px; color: #667781; }
+
+  .quote-card { background: linear-gradient(135deg, #fff, #fff6f6); color: #111; border: 1px solid #f3c9cb; border-radius: 10px; padding: 9px 11px; min-width: 250px; margin: 3px 0; }
+  .qc-top { display: flex; justify-content: space-between; align-items: center; }
+  .qc-label { font-size: 10.5px; text-transform: uppercase; letter-spacing: .06em; color: #e3242b; font-weight: 700; }
+  .badge { font-size: 10.5px; font-weight: 700; color: #fff; background: #6aa84f; border-radius: 6px; padding: 2px 8px; }
+  .qc-number { font-weight: 600; font-size: 14px; margin-top: 2px; }
+  .qc-total { font-size: 21px; font-weight: 800; margin: 2px 0; }
+  .qc-total span { font-size: 11.5px; font-weight: 500; color: #667781; }
+  .qc-lines { list-style: none; margin: 7px 0 0; }
+  .qc-lines li { display: flex; justify-content: space-between; gap: 10px; font-size: 12.5px; padding: 2px 0; color: #333; }
+  .qc-lines b { font-weight: 600; }
+  .qc-lines .free b { color: #6aa84f; }
+
+  .chips { display: flex; gap: 6px; margin: 6px 0 2px; }
+  .chip { border: 1px solid #f2b8ba; background: #fff; color: #b81c22; padding: 6px 12px; border-radius: 16px; font-size: 12.5px; }
+
+  .typing-b { display: flex; gap: 4px; padding: 12px 14px; }
+  .typing-b span { width: 7px; height: 7px; border-radius: 50%; background: #8696a0; animation: blink 1.2s infinite; }
+  .typing-b span:nth-child(2) { animation-delay: .2s; }
+  .typing-b span:nth-child(3) { animation-delay: .4s; }
+  @keyframes blink { 0%,80%,100% { opacity: .35; } 40% { opacity: 1; } }
+
+  .composer { display: flex; align-items: center; gap: 8px; padding: 8px 10px 12px; background: #efeae2; }
+  .composer .field { flex: 1; background: #fff; border-radius: 22px; padding: 11px 16px; font-size: 14.5px; color: #8696a0; box-shadow: 0 1px .5px rgba(0,0,0,.1); }
+  .composer .send { width: 44px; height: 44px; border-radius: 50%; background: #e3242b; display: grid; place-items: center; flex: none; }
+
+  /* ---------- footer ---------- */
+  .foot { padding: 18px 0 40px; font-size: 26px; color: #8fa3ad; letter-spacing: .02em; }
+  .foot b { color: #e9edef; font-weight: 600; }
+
+  /* ============ 7s conversation timeline (percentages bake in each offset so the loop is seamless) ============ */
+  .m1  { animation: k-m1  7s cubic-bezier(.2,.9,.3,1) infinite; }
+  .ty1 { animation: k-ty1 7s linear infinite; }
+  .b1  { animation: k-b1  7s cubic-bezier(.2,.9,.3,1) infinite; }
+  .c1  { animation: k-c1  7s cubic-bezier(.2,.9,.3,1) infinite; }
+  .c2  { animation: k-c2  7s cubic-bezier(.2,.9,.3,1) infinite; }
+  .c3  { animation: k-c3  7s cubic-bezier(.2,.9,.3,1) infinite; }
+  .b2  { animation: k-b2  7s cubic-bezier(.2,.9,.3,1) infinite; }
+  .chp { animation: k-chp 7s cubic-bezier(.2,.9,.3,1) infinite; }
+  .m2  { animation: k-m2  7s cubic-bezier(.2,.9,.3,1) infinite; }
+  .ty2 { animation: k-ty2 7s linear infinite; }
+  .b3  { animation: k-b3  7s cubic-bezier(.2,.9,.3,1) infinite; }
+
+  @keyframes k-m1  { 0%,4%  { opacity:0; transform:translateY(16px); } 9%,100%  { opacity:1; transform:none; } }
+  @keyframes k-ty1 { 0%,12% { opacity:0; max-height:0; margin:0; } 15%,23% { opacity:1; max-height:60px; margin:3px 0; } 26%,100% { opacity:0; max-height:0; margin:0; } }
+  @keyframes k-b1  { 0%,26% { opacity:0; transform:translateY(16px); } 32%,100% { opacity:1; transform:none; } }
+  @keyframes k-c1  { 0%,30% { opacity:0; transform:translateX(24px); } 36%,100% { opacity:1; transform:none; } }
+  @keyframes k-c2  { 0%,34% { opacity:0; transform:translateX(24px); } 40%,100% { opacity:1; transform:none; } }
+  @keyframes k-c3  { 0%,38% { opacity:0; transform:translateX(24px); } 44%,100% { opacity:1; transform:none; } }
+  @keyframes k-b2  { 0%,48% { opacity:0; transform:translateY(16px); } 54%,100% { opacity:1; transform:none; } }
+  @keyframes k-chp { 0%,57% { opacity:0; transform:translateY(10px); } 62%,100% { opacity:1; transform:none; } }
+  @keyframes k-m2  { 0%,66% { opacity:0; transform:translateY(16px); } 71%,100% { opacity:1; transform:none; } }
+  @keyframes k-ty2 { 0%,74% { opacity:0; max-height:0; margin:0; } 77%,85% { opacity:1; max-height:60px; margin:3px 0; } 88%,100% { opacity:0; max-height:0; margin:0; } }
+  @keyframes k-b3  { 0%,88% { opacity:0; transform:translateY(16px); } 94%,100% { opacity:1; transform:none; } }
+</style>
+</head>
+<body>
+
+<div class="head">
+  <img src="../public/icons/logo-dark.png" alt="HDS Cut &amp; Edge">
+  <span class="pill-new">NEW</span>
+</div>
+
+<div class="headline">
+  <h1>Your HDS, <em>in an app.</em></h1>
+  <p>Quotes &nbsp;·&nbsp; Cutting lists &nbsp;·&nbsp; <b>App-only specials</b></p>
+</div>
+
+<div class="phone-wrap">
+  <div class="halo"></div>
+  <div class="phone">
+    <div class="screen">
+      <div class="statusbar">
+        <span>9:41</span>
+        <span class="sic">
+          <svg width="20" height="14" viewBox="0 0 20 14" fill="#fff"><rect x="0" y="9" width="3" height="5" rx="1"/><rect x="5" y="6" width="3" height="8" rx="1"/><rect x="10" y="3" width="3" height="11" rx="1"/><rect x="15" y="0" width="3" height="14" rx="1"/></svg>
+          <svg width="24" height="14" viewBox="0 0 24 14"><rect x="0" y="1" width="20" height="12" rx="3.5" fill="none" stroke="#fff" stroke-width="1.4"/><rect x="2.4" y="3.4" width="13" height="7.2" rx="1.8" fill="#fff"/><rect x="21.6" y="4.8" width="2.4" height="4.4" rx="1.2" fill="#fff"/></svg>
+        </span>
+      </div>
+      <div class="top">
+        <img class="avatar" src="../public/icons/icon-192.png" alt="">
+        <div>
+          <div class="top-title">HDS Cut &amp; Edge</div>
+          <div class="top-sub"><i></i> online — replies in minutes</div>
+        </div>
+      </div>
+
+      <div class="messages">
+        <div class="day"><span>Today</span></div>
+
+        <div class="row mine"><div class="bubble m1">
+          <div class="text">Any board specials this week?</div>
+          <div class="meta">09:41 <span class="tick">✓✓</span></div>
+        </div></div>
+
+        <div class="row theirs ty1" style="overflow:hidden"><div class="bubble"><div class="typing-b"><span /><span /><span /></div></div></div>
+
+        <div class="row theirs"><div class="bubble b1">
+          <div class="sender">William</div>
+          <div class="text">Yes — these app-only deals are live right now:</div>
+          <div class="carousel">
+            <div class="card c1">
+              <div class="imgbox fit"><img src="https://xzsibbbghotreolzwnyk.supabase.co/storage/v1/object/public/product-images/3568/premium-white-0.jpg" alt=""><span class="tag">SPECIAL</span></div>
+              <div class="card-text"><span class="nm">Premium White 16mm</span><div class="pr"><s>R680</s>R620 <span class="u">/sheet</span></div></div>
+            </div>
+            <div class="card c2">
+              <div class="imgbox"><img src="https://xzsibbbghotreolzwnyk.supabase.co/storage/v1/object/public/product-images/6415/american-white-oak-1.jpg" alt=""><span class="tag deal">APP DEAL</span></div>
+              <div class="card-text"><span class="nm">American White Oak</span><div class="pr">R850 <span class="u">/sheet</span></div></div>
+            </div>
+            <div class="card c3" style="flex-basis:70px">
+              <div class="imgbox"><img src="https://xzsibbbghotreolzwnyk.supabase.co/storage/v1/object/public/product-images/3487/savannah-1.jpg" alt=""></div>
+            </div>
+          </div>
+          <div class="meta">09:41</div>
+        </div></div>
+
+        <div class="row theirs"><div class="bubble b2">
+          <div class="quote-card">
+            <div class="qc-top"><span class="qc-label">Quote</span><span class="badge">FREE cutting</span></div>
+            <div class="qc-number">Q-2026-1042</div>
+            <div class="qc-total">R1,860.00 <span>incl. VAT</span></div>
+            <ul class="qc-lines">
+              <li><span>3× Premium White Melamine 16mm</span><b>R1,860</b></li>
+              <li class="free"><span>Cut to your list</span><b>FREE</b></li>
+            </ul>
+          </div>
+          <div class="meta">09:42</div>
+        </div></div>
+
+        <div class="chips chp"><span class="chip">Quote me on these</span><span class="chip">See all colours</span></div>
+
+        <div class="row mine"><div class="bubble m2">
+          <div class="text">Add the Premium White to my quote</div>
+          <div class="meta">09:42 <span class="tick">✓✓</span></div>
+        </div></div>
+
+        <div class="row theirs ty2" style="overflow:hidden"><div class="bubble"><div class="typing-b"><span /><span /><span /></div></div></div>
+
+        <div class="row theirs"><div class="bubble b3">
+          <div class="sender">William</div>
+          <div class="text">Done — it's on Q-2026-1042. Pay in the app or at the branch.</div>
+          <div class="meta">09:42</div>
+        </div></div>
+      </div>
+
+      <div class="composer">
+        <div class="field">Message William…</div>
+        <div class="send"><svg width="20" height="20" viewBox="0 0 24 24" fill="#fff"><path d="M3.4 20.4l17.4-7.5c.8-.35.8-1.45 0-1.8L3.4 3.6c-.66-.29-1.39.2-1.39.91L2 9.12c0 .5.37.93.87.99L17 12 2.87 13.88c-.5.07-.87.5-.87 1l.01 4.61c0 .72.73 1.2 1.39.91z"/></svg></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="foot"><b>chat.hdsgroup.co.za</b></div>
+
+</body>
+</html>

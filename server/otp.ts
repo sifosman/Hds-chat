@@ -51,10 +51,19 @@ export async function waSendText(phone: string, body: string): Promise<string | 
 
 /** Free-form WhatsApp image + caption via the Cloud API. Returns null on success, else a reason code. */
 export async function waSendImage(phone: string, link: string, caption: string): Promise<string | null> {
+  return waSendMedia(phone, 'image', link, caption);
+}
+
+/** Free-form WhatsApp video + caption via the Cloud API. A short muted mp4 plays like a GIF in-chat. */
+export async function waSendVideo(phone: string, link: string, caption: string): Promise<string | null> {
+  return waSendMedia(phone, 'video', link, caption);
+}
+
+async function waSendMedia(phone: string, type: 'image' | 'video', link: string, caption: string): Promise<string | null> {
   if (!ENV.WA_TOKEN || !ENV.WA_PHONE_ID) return 'wa_not_configured';
   const r = await fetch(`https://graph.facebook.com/v20.0/${ENV.WA_PHONE_ID}/messages`, {
     method: 'POST', signal: AbortSignal.timeout(10_000), headers: { Authorization: 'Bearer ' + ENV.WA_TOKEN, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ messaging_product: 'whatsapp', to: phone, type: 'image', image: { link, caption } }),
+    body: JSON.stringify({ messaging_product: 'whatsapp', to: phone, type, [type]: { link, caption } }),
   });
   return r.ok ? null : 'wa_http_' + r.status;
 }
