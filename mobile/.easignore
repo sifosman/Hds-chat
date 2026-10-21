@@ -1,0 +1,12 @@
+node_modules/
+.npm-cache/
+artifacts/
+.expo/
+dist/
+android/
+ios/
+.git/
+*.jks
+*.keystore
+credentials.json
+.env*

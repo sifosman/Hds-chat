@@ -1,0 +1,69 @@
+{
+  "at": "2026-10-21T15:22:07.987Z",
+  "checks": [
+    {
+      "name": "unauthenticated reads denied",
+      "pass": true
+    },
+    {
+      "name": "synthetic OTP disabled in production",
+      "pass": true
+    },
+    {
+      "name": "concurrent invite redemption single winner",
+      "pass": true
+    },
+    {
+      "name": "concurrent invite redemption single winner",
+      "pass": true
+    },
+    {
+      "name": "synthetic quote fixture exists",
+      "pass": true
+    },
+    {
+      "name": "other user quote denied",
+      "pass": true
+    },
+    {
+      "name": "wrong gateway secret denied",
+      "pass": true
+    },
+    {
+      "name": "unknown recipient NOT forwarded to real WhatsApp",
+      "pass": true
+    },
+    {
+      "name": "foreign quote PDF blocked before delivery",
+      "pass": true
+    },
+    {
+      "name": "foreign payment link blocked before delivery",
+      "pass": true
+    },
+    {
+      "name": "concurrent gateway callback stored once",
+      "pass": true
+    },
+    {
+      "name": "cross-user client id collision denied",
+      "pass": true
+    },
+    {
+      "name": "processed turn cannot be claimed again",
+      "pass": true
+    },
+    {
+      "name": "webpush SSRF endpoint rejected",
+      "pass": true
+    },
+    {
+      "name": "private Chatwoot notes not delivered",
+      "pass": true
+    },
+    {
+      "name": "revoked session denied",
+      "pass": true
+    }
+  ]
+}

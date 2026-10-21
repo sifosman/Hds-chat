@@ -1,0 +1,10 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "za.co.hdsgroup.chat",
+      "sha256_cert_fingerprints": ["E3:44:BB:38:85:F6:0A:A9:A0:AD:54:B2:EE:B9:65:99:20:F7:5B:0E:5E:C8:E9:AA:8B:57:80:BC:00:5C:AF:09"]
+    }
+  }
+]

@@ -1,0 +1,87 @@
+// OTP delivery chain. Order: SMS (if a provider is configured) → WhatsApp reply inside the customer's
+// open 24h window (allowed even while business-initiated sends are blocked) → email on file (Brevo).
+import { db } from './db.js';
+import { ENV, isTestPhone } from './env.js';
+import { log } from './util.js';
+
+type R = { ok: true; channel: string } | { ok: false; reasons: string[]; message: string };
+
+const text = (code: string) => `${code} is your HDS app sign-in code. It expires in 10 minutes. Don't share it with anyone.`;
+
+async function viaSms(phone: string, code: string): Promise<string | null> {
+  if (!ENV.SMS_PROVIDER || !ENV.SMS_USER || !ENV.SMS_PASS) return 'sms_not_configured';
+  const auth = 'Basic ' + Buffer.from(`${ENV.SMS_USER}:${ENV.SMS_PASS}`).toString('base64');
+  let r: Response;
+  if (ENV.SMS_PROVIDER === 'smsportal') {
+    // SMSPortal REST: client id/secret basic auth → bearer token → BulkMessages
+    const t = await fetch('https://rest.smsportal.com/Authentication', { headers: { Authorization: auth }, signal: AbortSignal.timeout(10_000) });
+    if (!t.ok) return 'sms_auth_' + t.status;
+    const { token } = await t.json() as any;
+    if (typeof token !== 'string' || !token) return 'sms_auth_invalid';
+    r = await fetch('https://rest.smsportal.com/BulkMessages', {
+      method: 'POST', signal: AbortSignal.timeout(10_000), headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messages: [{ content: text(code), destination: phone }] }),
+    });
+  } else if (ENV.SMS_PROVIDER === 'bulksms') {
+    r = await fetch('https://api.bulksms.com/v1/messages', {
+      method: 'POST', signal: AbortSignal.timeout(10_000), headers: { Authorization: auth, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ to: '+' + phone, body: text(code), from: ENV.SMS_SENDER || undefined }),
+    });
+  } else return 'sms_provider_unknown';
+  return r.ok ? null : 'sms_http_' + r.status;
+}
+
+async function viaWhatsAppWindow(phone: string, code: string): Promise<string | null> {
+  if (!ENV.WA_TOKEN || !ENV.WA_PHONE_ID) return 'wa_not_configured';
+  const { data, error } = await db().from('ai_conversations').select('created_at')
+    .eq('phone_number', phone).eq('role', 'user').order('created_at', { ascending: false }).limit(1).maybeSingle();
+  const age = Date.now() - Date.parse(data?.created_at);
+  if (error || !data || !Number.isFinite(age) || age < 0 || age >= 23 * 3600_000) return 'wa_window_closed';
+  const r = await fetch(`https://graph.facebook.com/v20.0/${ENV.WA_PHONE_ID}/messages`, {
+    method: 'POST', signal: AbortSignal.timeout(10_000), headers: { Authorization: 'Bearer ' + ENV.WA_TOKEN, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ messaging_product: 'whatsapp', to: phone, type: 'text', text: { body: text(code) } }),
+  });
+  if (!r.ok) return 'wa_http_' + r.status;
+  return null;
+}
+
+async function viaEmail(phone: string, code: string): Promise<string | null> {
+  // An email written into CRM by a conversation is not proof of ownership of this phone.
+  // Email sign-in stays disabled until a separately verified identity-link flow exists.
+  return 'email_identity_not_verified';
+  /* Future verified-email provider:
+  if (!ENV.BREVO_API_KEY) return 'email_not_configured';
+  const { data, error } = await db().from('customer_profiles').select('email').eq('phone_number', phone).maybeSingle();
+  const email = !error && typeof data?.email === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email) ? data.email : null;
+  if (!email) return 'no_email';
+  const r = await fetch('https://api.brevo.com/v3/smtp/email', {
+    method: 'POST', signal: AbortSignal.timeout(10_000), headers: { 'api-key': ENV.BREVO_API_KEY, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ sender: { email: ENV.EMAIL_FROM, name: 'HDS Group' }, to: [{ email }], subject: 'Your HDS sign-in code', textContent: text(code) }),
+  });
+  return r.ok ? null : 'email_http_' + r.status;
+  */
+}
+
+const CHANNELS: Record<string, (p: string, c: string) => Promise<string | null>> = { sms: viaSms, whatsapp: viaWhatsAppWindow, email: viaEmail };
+
+export async function deliverOtp(phone: string, code: string, preferred?: string): Promise<R> {
+  // Synthetic numbers must never reach any provider, including direct callers/tests.
+  if (isTestPhone(phone) || !/^[1-9]\d{9,14}$/.test(phone) || !/^\d{6}$/.test(code)) {
+    return { ok: false, reasons: ['invalid_destination'], message: 'Unable to send a code.' };
+  }
+  const order = ['sms', 'whatsapp', 'email'];
+  if (preferred && CHANNELS[preferred]) order.sort((a, b) => (a === preferred ? -1 : b === preferred ? 1 : 0));
+  const reasons: string[] = [];
+  for (const ch of order) {
+    try {
+      const err = await CHANNELS[ch](phone, code);
+      if (!err) { log('otp_delivered', { phone, ch }); return { ok: true, channel: ch }; }
+      reasons.push(err);
+    } catch (e) { reasons.push(ch + '_error'); }
+  }
+  log('otp_failed', { phone, reasons });
+  return {
+    ok: false, reasons,
+    message: 'We couldn\'t send you a code right now. Send us any WhatsApp message on 067 902 0239, then tap "Send code" again and we\'ll send the code to your WhatsApp.',
+  };
+}

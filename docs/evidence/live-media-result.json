@@ -1,0 +1,26 @@
+{
+  "at": "2026-10-21T15:02:33.800Z",
+  "results": [
+    {
+      "phone": "27900000814",
+      "name": "cutting-list.jpg",
+      "pass": true,
+      "elapsedSeconds": 36,
+      "reply": "Got your photo! Let me take a look and get back to you in a moment.\nThis looks like the exact same list you sent before — White Melamine 16mm, same 28 pieces: • 1800x400mm — x4\n• 1795x395mm — x2\n• 1295x395mm — x2\n• 395x195mm — x4\n• 700x100mm — x4\n• 300x100mm — x4\n• 768x400mm — x8 Total: 28 pieces, roughly 2 sheets. I still need two things before quoting: is this the complete, final list, and which of these pieces (if any) are doors/drawer fronts so I get the edging right — carcass pieces default to 0.4mm front-only, doors to 1.0mm all round."
+    },
+    {
+      "phone": "27900000815",
+      "name": "cutlist.pdf",
+      "pass": true,
+      "elapsedSeconds": 39,
+      "reply": "Got your document! Give me a moment to read through it.\nGot your cutting list! Here's what I can see: • Material: 16mm White Melamine\n• 720x560mm x6 — edging front only (L1)\n• 720x400mm x4 — edging all round (likely doors)\n• 700x540mm x3 — edging front only (L1)\n• Total: 13 pieces, approx. 2 sheets Edging I'll apply: 0.4mm PVC on the front-only pieces, and 1.0mm PVC all round on the 720x400mm doors — correct, or would you like it different? Can you confirm these measurements are correct and that this is your complete list before I generate anything?"
+    },
+    {
+      "phone": "27900000816",
+      "name": "speech.mp3",
+      "pass": true,
+      "elapsedSeconds": 54,
+      "reply": "Got your voice note! Give me a moment to listen to it.\nHi there! Here's your quote: • 5x Premium White Melamine 16mm @ R620/sheet — on our October special, free cutting included (ends 31 Oct)\n• Total (incl. VAT): R3,100 Quote ID: Q-20261021-1132-9b0c1edd — valid until 28 October. Take this quote with you when you go to the branch — specials like free cutting are only honoured when you show this online quotation. Quick one — which area are you in? I'll point you to your nearest branch, and by the way, what's your name so I know who I'm chatting with?"
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+node_modules/
+.npm-cache/
+artifacts/
+.expo/
+dist/
+android/
+ios/
+*.jks
+*.keystore
+credentials.json
+google-services.json
+.env*
+!.env.example

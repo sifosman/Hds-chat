@@ -1,0 +1,68 @@
+{
+  "base": "https://hds-chat.vercel.app",
+  "phone": "27900000811",
+  "at": "2026-10-21T14:48:09.595Z",
+  "results": [
+    {
+      "name": "invite previews before redemption",
+      "ok": true
+    },
+    {
+      "name": "invite authenticated correct test identity",
+      "ok": true
+    },
+    {
+      "name": "server acknowledgement",
+      "ok": true,
+      "detail": "2924 ms"
+    },
+    {
+      "name": "client retry deduplicated",
+      "ok": true
+    },
+    {
+      "name": "same engine amount: four white sheets",
+      "ok": true,
+      "detail": "2480"
+    },
+    {
+      "name": "quote PDF delivered inside app",
+      "ok": true
+    },
+    {
+      "name": "PDF downloadable",
+      "ok": true
+    },
+    {
+      "name": "real PDF bytes",
+      "ok": true
+    },
+    {
+      "name": "server acknowledgement",
+      "ok": true,
+      "detail": "2600 ms"
+    },
+    {
+      "name": "client retry deduplicated",
+      "ok": true
+    },
+    {
+      "name": "resend does not create another quote",
+      "ok": true
+    },
+    {
+      "name": "server acknowledgement",
+      "ok": true,
+      "detail": "3047 ms"
+    },
+    {
+      "name": "client retry deduplicated",
+      "ok": true
+    },
+    {
+      "name": "William answers from quote",
+      "ok": true
+    }
+  ],
+  "quote": "Q-20261021-3741-HDSCHUSTR-1407eb43"
+}

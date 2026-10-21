@@ -1,0 +1,23 @@
+{
+  "at": "2026-10-21T14:56:28.808Z",
+  "phone": "27900000817",
+  "conversationId": 863,
+  "results": [
+    {
+      "name": "handover routed to dedicated app inbox",
+      "ok": true
+    },
+    {
+      "name": "real Chatwoot staff reply delivered to app",
+      "ok": true
+    },
+    {
+      "name": "real private Chatwoot note hidden",
+      "ok": true
+    },
+    {
+      "name": "customer reply mirrored into active handover",
+      "ok": true
+    }
+  ]
+}

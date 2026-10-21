@@ -1,0 +1,32 @@
+{
+  "at": "2026-10-21T15:16:19.826Z",
+  "source_id": "2d3f39eb-ae99-4f2e-b29c-3edc111b6d9b",
+  "runs": [
+    {
+      "ok": true,
+      "users": 4,
+      "delivered": 0,
+      "queued": 0,
+      "baselines": 0,
+      "failures": 0,
+      "budget_reached": false
+    },
+    {
+      "ok": true,
+      "busy": true,
+      "users": 0,
+      "delivered": 0
+    },
+    {
+      "ok": true,
+      "users": 5,
+      "delivered": 1,
+      "queued": 1,
+      "baselines": 0,
+      "failures": 0,
+      "budget_reached": false
+    }
+  ],
+  "delivered_count": 1,
+  "pass": true
+}

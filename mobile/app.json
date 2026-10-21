@@ -1,0 +1,65 @@
+{
+  "expo": {
+    "name": "HDS Chat",
+    "slug": "hds-chat-android",
+    "owner": "sifosman",
+    "version": "1.0.0",
+    "scheme": "hds-chat",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "platforms": [
+      "android"
+    ],
+    "android": {
+      "package": "za.co.hdsgroup.chat",
+      "versionCode": 1,
+      "softwareKeyboardLayoutMode": "resize",
+      "allowBackup": false,
+      "edgeToEdgeEnabled": true,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "permissions": [
+        "CAMERA",
+        "RECORD_AUDIO",
+        "MODIFY_AUDIO_SETTINGS"
+      ],
+      "blockedPermissions": [
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.READ_MEDIA_IMAGES",
+        "android.permission.READ_MEDIA_VIDEO",
+        "android.permission.SYSTEM_ALERT_WINDOW"
+      ],
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "hds-chat.vercel.app",
+              "pathPrefix": "/"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        }
+      ]
+    },
+    "plugins": [
+      "./plugins/withSecureWebView"
+    ],
+    "extra": {
+      "nativePushEnabled": false,
+      "eas": {
+        "projectId": "18114d09-7139-421f-93b7-817c8f45678b"
+      }
+    }
+  }
+}

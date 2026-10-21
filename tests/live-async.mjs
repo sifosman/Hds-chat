@@ -1,0 +1,8 @@
+// Synthetic source-row test only. Does not mutate invoices or payment states.
+import {readFileSync,writeFileSync} from 'node:fs';import {createClient} from '@supabase/supabase-js';
+const env=Object.fromEntries(readFileSync('.env.local','utf8').split('\n').filter(l=>l.includes('=')).map(l=>[l.slice(0,l.indexOf('=')),l.slice(l.indexOf('=')+1)]));
+const d=createClient(env.SUPABASE_URL,env.SUPABASE_SECRET_KEY);const phone='27900000812';const body='TEST ONLY asynchronous branch-message delivery. This is not a payment confirmation.';
+const{data:source,error}=await d.from('ai_conversations').insert({phone_number:phone,role:'assistant',message_text:body,tool_results:{branch_paycheck:true,origin:'hds-app-async-test'},conversation_metadata:{test:true}}).select('id').single();if(error)throw error;
+let seen=0;const runs=[];
+for(let i=0;i<4;i++) {const r=await fetch('https://hds-chat.vercel.app/api/internal/reconcile',{method:'POST',headers:{'Content-Type':'application/json','x-internal-key':env.INTERNAL_KEY},body:'{}'});const j=await r.json();if(!r.ok)throw Error('reconcile HTTP '+r.status);runs.push(j);const {data:msgs,error}=await d.from('app_messages').select('id,body').eq('phone',phone).contains('payload',{source_id:source.id});if(error)throw error;seen=msgs.length;if(seen===1 && i>0)break;}
+const result={at:new Date().toISOString(),source_id:source.id,runs,delivered_count:seen,pass:seen===1};writeFileSync('scratch/live-async-result.json',JSON.stringify(result,null,2));console.log(result.pass?'PASS':'FAIL','allowlisted async source delivered once',seen);if(!result.pass)process.exitCode=1;

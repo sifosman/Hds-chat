@@ -1,0 +1,14 @@
+node_modules
+dist
+.env*
+!.env.example
+.vc
+scratch
+research
+.vercel
+mobile/node_modules
+mobile/.expo
+n8n/backups/
+__pycache__/
+playwright-report/
+test-results/
