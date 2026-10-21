@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { native } from '../lib/api';
 import { canPromptInstall, isIOS, isStandalone, onInstallChange, promptInstall } from '../lib/install';
-import { IconBell, IconChat, IconClose, IconDownload, IconQuotes } from './Icons';
+import { IconBell, IconChat, IconClose, IconDownload, IconQuotes, IconTag } from './Icons';
 
 const SNOOZE = 'hds.install.snooze';
 const SNOOZE_MS = 7 * 864e5;
@@ -33,9 +33,10 @@ export function InstallSheet() {
           <li><IconChat size={18} /> Chat with William &amp; the team</li>
           <li><IconQuotes size={18} /> Quotes and invoices instantly</li>
           <li><IconBell size={18} /> Know the moment we reply</li>
+          <li><IconTag size={18} /> App-only specials &amp; promos</li>
         </ul>
         {canPromptInstall() ? (
-          <button className="btn primary block install-cta" onClick={install}><IconDownload size={18} /> Install app</button>
+          <button className="btn block install-cta cta" onClick={install}><IconDownload size={18} /> Install app</button>
         ) : isIOS() ? (
           <div className="install-steps">
             <p><b>1.</b> Tap the <b>Share</b> button in Safari</p>
