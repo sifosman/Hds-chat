@@ -35,6 +35,7 @@
 - Browser: offline send survives offline page reload and appears exactly once after reconnect; quotes/detail/PDF UI opens.
 - Atomic auth SQL also checked in a rolled-back database transaction: wrong code, correct code, replay, attempt cap and expiry.
 - Async scheduler has successful executions; synthetic source-message relay tested separately (see evidence).
+- **Broader William regression: 20/20 checks live** ([evidence](./docs/evidence/live-regression-result.json)) on BOTH the app channel and the WhatsApp test clone: hardware add-on merges boards + 4 hinges identically (R1,404 both channels); quote revision 4→6 sheets reprices identically (R4,080 both); a turnaround question creates **no** branch payment check on either channel (claim gate holds); an Afrikaans request quotes identically (R1,360 both); gibberish produces no quote and still gets a reply. Deliberately not exercised: a *positive* "I have paid" claim (it would message a real branch — needs owner sandbox).
 
 ## Measured, not idealised
 

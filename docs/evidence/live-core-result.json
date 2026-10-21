@@ -1,7 +1,7 @@
 {
   "base": "https://hds-chat.vercel.app",
-  "phone": "27900000811",
-  "at": "2026-10-21T14:48:09.595Z",
+  "phone": "27900000833",
+  "at": "2026-10-21T16:07:37.686Z",
   "results": [
     {
       "name": "invite previews before redemption",
@@ -12,9 +12,14 @@
       "ok": true
     },
     {
+      "name": "fresh test account required",
+      "ok": true,
+      "detail": "Use a new reserved number: old n8n memory and in-date quotes survive data cleanup."
+    },
+    {
       "name": "server acknowledgement",
       "ok": true,
-      "detail": "2924 ms"
+      "detail": "2593 ms"
     },
     {
       "name": "client retry deduplicated",
@@ -23,10 +28,10 @@
     {
       "name": "same engine amount: four white sheets",
       "ok": true,
-      "detail": "2480"
+      "detail": "2720"
     },
     {
-      "name": "quote PDF delivered inside app",
+      "name": "quote PDF accessible from owned rich card",
       "ok": true
     },
     {
@@ -40,7 +45,7 @@
     {
       "name": "server acknowledgement",
       "ok": true,
-      "detail": "2600 ms"
+      "detail": "2224 ms"
     },
     {
       "name": "client retry deduplicated",
@@ -53,7 +58,7 @@
     {
       "name": "server acknowledgement",
       "ok": true,
-      "detail": "3047 ms"
+      "detail": "2181 ms"
     },
     {
       "name": "client retry deduplicated",
@@ -62,7 +67,12 @@
     {
       "name": "William answers from quote",
       "ok": true
+    },
+    {
+      "name": "all real workflow turns explicitly completed",
+      "ok": true
     }
   ],
-  "quote": "Q-20261021-3741-HDSCHUSTR-1407eb43"
+  "expectedTotal": 2720,
+  "quote": "Q-20261021-1652-HDSCHUSTR-61645b9a"
 }

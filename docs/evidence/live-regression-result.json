@@ -1,0 +1,108 @@
+{
+  "at": "2026-10-21T16:47:14.561Z",
+  "base": "https://hds-chat.vercel.app",
+  "results": [
+    {
+      "name": "S1 hinge line present in app quote",
+      "ok": true,
+      "detail": "Q-20261021-2605-HDSCHUSTR-c7fd8b0d"
+    },
+    {
+      "name": "S1 hinge line present in clone quote",
+      "ok": true,
+      "detail": "Q-20261021-9519-HDSCHUSTR-0db187b8"
+    },
+    {
+      "name": "S1 hardware totals equal across channels",
+      "ok": true,
+      "detail": "app 1404 vs clone 1404"
+    },
+    {
+      "name": "S1 hinge quote = boards + hinges on both channels",
+      "ok": true,
+      "detail": "app 1404=1360+44 | clone 1404=1360+44"
+    },
+    {
+      "name": "S1 hardware add-on parity (app+clone)",
+      "ok": true,
+      "detail": "106s"
+    },
+    {
+      "name": "S2 app revision total = 6 sheets",
+      "ok": true,
+      "detail": "4080 vs 4080"
+    },
+    {
+      "name": "S2 clone revision total = 6 sheets",
+      "ok": true,
+      "detail": "4080 vs 4080"
+    },
+    {
+      "name": "S2 no branch payment check without a payment claim (app)",
+      "ok": true,
+      "detail": "0 -> 0"
+    },
+    {
+      "name": "S2 no branch payment check without a payment claim (clone)",
+      "ok": true,
+      "detail": "0 -> 0"
+    },
+    {
+      "name": "S2 turnaround question still answered (app)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "S2 turnaround question still answered (clone)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "S2 revision parity + payment non-claim gate",
+      "ok": true,
+      "detail": "123s"
+    },
+    {
+      "name": "S3 app Afrikaans quote total = 2 sheets",
+      "ok": true,
+      "detail": "1360"
+    },
+    {
+      "name": "S3 clone Afrikaans quote total = 2 sheets",
+      "ok": true,
+      "detail": "1360"
+    },
+    {
+      "name": "S3 Afrikaans request parity",
+      "ok": true,
+      "detail": "74s"
+    },
+    {
+      "name": "S4 no quote from gibberish (app)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "S4 no quote from gibberish (clone)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "S4 William still replies to gibberish (app)",
+      "ok": true,
+      "detail": "asdf qwerty zxcv 12345 ???"
+    },
+    {
+      "name": "S4 William still replies to gibberish (clone)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "S4 nonsense input handled (no quote)",
+      "ok": true,
+      "detail": "30s"
+    }
+  ],
+  "passed": 20,
+  "failed": 0
+}

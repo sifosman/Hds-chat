@@ -26,7 +26,7 @@
 | SMS OTP delivery | NOT CONFIGURED | Provider adapter exists; no SMS credentials or delivery evidence |
 | WhatsApp-independent onboarding | NOT COMPLETE | Invite links work; direct phone sign-in still needs independent SMS for reliability |
 | Payment provider sandbox matrix | NOT RUN | No purchases/refunds made; existing engine reused |
-| Comprehensive William regression | PARTIAL | Core/parity/media/handover covered, not every hardware/revision/payment/error scenario |
+| Comprehensive William regression | PASS for core scenarios | 20/20 live checks app vs WhatsApp clone: hardware add-on (R1,404 both), 4→6-sheet revision (R4,080 both), payment-claim gate holds (no branch check without a claim), Afrikaans quote (R1,360 both), gibberish handled. Not exercised: positive paid-claim path (needs owner sandbox); load/latency benchmarks separate |
 | Load, p95 latency, battery/data, accessibility audit | NOT RUN | Small bundle and functional checks are not these benchmarks |
 | Privacy/retention/compliance review | PENDING owner review | Draft in-app privacy/pilot notice; not legal sign-off |
 | Campaign/production launch approval | PENDING | No mass messages, automatic WA invites or Play Store release |

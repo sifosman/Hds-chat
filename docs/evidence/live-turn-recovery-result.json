@@ -1,0 +1,45 @@
+{
+  "at": "2026-10-21T15:53:53.481Z",
+  "results": [
+    {
+      "name": "final reply and lost-receipt fallback share one message",
+      "pass": true
+    },
+    {
+      "name": "late error cannot downgrade delivered reply",
+      "pass": true
+    },
+    {
+      "name": "failure callback stored terminal state",
+      "pass": true
+    },
+    {
+      "name": "concurrent failure callbacks produce one notice",
+      "pass": true
+    },
+    {
+      "name": "failed claimed turn never replays",
+      "pass": true
+    },
+    {
+      "name": "watchdog endpoint succeeds",
+      "pass": true
+    },
+    {
+      "name": "stalled turn times out and its notice is acknowledged",
+      "pass": true
+    },
+    {
+      "name": "timeout notice persisted once",
+      "pass": true
+    },
+    {
+      "name": "oversized text rejected rather than truncated",
+      "pass": true
+    },
+    {
+      "name": "invalid geographic coordinates rejected",
+      "pass": true
+    }
+  ]
+}

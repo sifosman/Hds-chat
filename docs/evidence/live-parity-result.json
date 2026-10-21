@@ -1,11 +1,14 @@
 {
-  "at": "2026-10-21T14:59:38.058Z",
+  "at": "2026-10-21T16:08:27.913Z",
   "scenario": "four full Premium White sheets; no cutting/edging; Church Street; pay at branch",
-  "appTotal": 2480,
-  "cloneTotal": 2480,
+  "phone": "27900000834",
+  "appPhone": "27900000833",
+  "expectedTotal": 2720,
+  "appTotal": 2720,
+  "cloneTotal": 2720,
   "appBranch": "HDS Church Street",
   "cloneBranch": "HDS Church Street",
-  "cloneQuote": "Q-20261021-7072-HDSCHUSTR-a14753dc",
-  "reply": "Hi App Pilot! Here's your quote: • 4 sheets Premium White Melamine 16mm @ R620 (special, free cutting) = R2,480 incl. VAT\n• No cutting, edging or hardware added, as requested Quote ID: Q-20261021-7072-HDSCHUSTR-a14753dc — assigned to HDS Church Street, 442 Charlotte Maxeke Street, Pretoria. Paying at the branch — just mention this quote number on arrival. Take this quote with you to the branch — specials and free cutting are only honoured when you show this online quotation. It's valid until 28 October 2026.",
+  "cloneQuote": "Q-20261021-5380-HDSCHUSTR-4c228520",
+  "reply": "Hi App Pilot! Here's your quote: *Q-20261021-5380-HDSCHUSTR-4c228520*\n• 4x Premium White Melamine 16mm @ R680/sheet\n• Cutting: free (part of the current special)\n• Total incl. VAT: *R2,720.00* Assigned to HDS Church Street, pay-at-branch — just mention this quote number when you collect. PDF: https://xzsibbbghotreolzwnyk.supabase.co/storage/v1/object/public/hdsquotes/Q-20261021-5380-HDSCHUSTR-4c228520 Take this quote with you when you go to the branch — specials like free cutting are only honoured when you show this online quotation. Valid until 28 October 2026. One quick thing — what's your actual name so I can get it right on our records?",
   "pass": true
 }
