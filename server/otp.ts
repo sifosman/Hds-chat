@@ -49,6 +49,16 @@ export async function waSendText(phone: string, body: string): Promise<string | 
   return r.ok ? null : 'wa_http_' + r.status;
 }
 
+/** Free-form WhatsApp image + caption via the Cloud API. Returns null on success, else a reason code. */
+export async function waSendImage(phone: string, link: string, caption: string): Promise<string | null> {
+  if (!ENV.WA_TOKEN || !ENV.WA_PHONE_ID) return 'wa_not_configured';
+  const r = await fetch(`https://graph.facebook.com/v20.0/${ENV.WA_PHONE_ID}/messages`, {
+    method: 'POST', signal: AbortSignal.timeout(10_000), headers: { Authorization: 'Bearer ' + ENV.WA_TOKEN, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ messaging_product: 'whatsapp', to: phone, type: 'image', image: { link, caption } }),
+  });
+  return r.ok ? null : 'wa_http_' + r.status;
+}
+
 async function viaWhatsAppWindow(phone: string, code: string): Promise<string | null> {
   if (!ENV.WA_TOKEN || !ENV.WA_PHONE_ID) return 'wa_not_configured';
   if (!(await waWindowOpen(phone))) return 'wa_window_closed';
