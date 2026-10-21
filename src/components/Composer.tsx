@@ -26,12 +26,14 @@ export function Composer({ onError }: { onError: (m: string) => void }) {
   const sendText = () => {
     const t = text.trim();
     if (!t) return;
+    if (t.length > 4096) { onError('Please split your message or attach a document. Messages are limited to 4,096 characters.'); return; }
     send({ type: 'text', body: t });
     setText('');
     ta.current?.focus();
   };
 
   async function onFiles(files: FileList | null, kind: 'image' | 'document') {
+    if (text.trim().length > 4096) { onError('Please shorten the attachment caption to 4,096 characters.'); return; }
     setMenu(false);
     for (const f of Array.from(files || []).slice(0, 10)) {
       if (f.size > 25 * 1024 * 1024) { onError(`${f.name} is larger than 25 MB.`); continue; }

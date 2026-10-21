@@ -41,7 +41,7 @@ export const Bubble = memo(function Bubble({ m, showName, isLast, onImage, onQuo
   const mine = m.direction === 'in';
   const src = m.localBlobUrl || m.media_url || '';
   const p = m.payload || {};
-  const name = m.sender === 'agent' ? (m.sender_name || 'HDS team') : m.sender === 'bot' ? 'William' : '';
+  const name = m.sender === 'agent' ? (m.sender_name || 'HDS team') : m.sender === 'bot' ? 'William' : m.sender === 'system' ? 'HDS service' : '';
   const isHistory = p.channel === 'whatsapp';
   return (
     <div className={`row ${mine ? 'mine' : 'theirs'}${isHistory ? ' history' : ''}`}>
@@ -51,8 +51,8 @@ export const Bubble = memo(function Bubble({ m, showName, isLast, onImage, onQuo
         {m.type === 'image' && src && <img className="media-img" src={src} alt={m.body || 'Photo'} loading="lazy" onClick={() => onImage(src)} />}
         {m.type === 'video' && src && <video className="media-img" src={src} controls preload="metadata" />}
         {m.type === 'audio' && src && <Audio src={src} />}
-        {m.type === 'document' && (
-          p.quote ? <QuoteCard q={p.quote} onOpen={() => onQuote(p.quote.quote_number)} /> :
+        {p.quote && <QuoteCard q={p.quote} onOpen={() => onQuote(p.quote.quote_number)} />}
+        {m.type === 'document' && !p.quote && (
           <button className="doc" onClick={() => src && openExternal(src)}>
             <IconDoc size={28} /><span>{p.filename || 'Document'}</span>
           </button>

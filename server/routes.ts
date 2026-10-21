@@ -7,6 +7,7 @@ import { HttpError, Router } from './http.js';
 import { customerSend, listMessages, retryPending, waHistory } from './messages.js';
 import { getQuote, listQuotes } from './quotes.js';
 import { reconcileAsync } from './reconcile.js';
+import { finishTurn, recoverStalledTurns } from './turns.js';
 
 export const router = new Router();
 
@@ -111,6 +112,11 @@ router
   })
 
   .on('POST', '/internal/reconcile', async ctx => { requireInternal(ctx); return reconcileAsync(); })
+  .on('POST', '/internal/turn/finish', async ctx => {
+    requireInternal(ctx);
+    return finishTurn(ctx.body.execution, ctx.body.outcome);
+  })
+  .on('POST', '/internal/turn/recover', async ctx => { requireInternal(ctx); return recoverStalledTurns(); })
 
   // ---- integrations
   .on('*', '/wa/:secret/:rest*', gateway)

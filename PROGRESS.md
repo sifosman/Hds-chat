@@ -25,7 +25,7 @@
 
 ## Verified
 
-- **146 automated web/server tests** pass; TypeScript checks pass.
+- **187 automated web/server tests** pass; TypeScript checks pass (initial build: 146; recovery/input/rich-card additions: 41).
 - **5 native shell security tests**, native prebuild, Hermes export, EAS build, APK signature/package checks pass.
 - Live app journey: 4 Premium White sheets → **R2,480**; quote card/PDF delivered; valid PDF bytes; resend creates no additional quote; sheet-count answer correct.
 - Same scenario on WhatsApp test clone: **R2,480, HDS Church Street**, matching app result.

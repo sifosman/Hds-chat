@@ -28,11 +28,27 @@ const preview = (m: { type: string; body?: string | null }) =>
   (m.body || '').trim().slice(0, 140) || ({ image: '📷 Photo', document: '📄 Document', audio: '🎤 Voice note', carousel: '🖼️ Product images', location: '📍 Location' } as any)[m.type] || 'New message';
 
 /** Store an outbound (bot/agent/system) message for an app user, then realtime + push. */
-export async function deliverOutbound(user: AppUser, msg: OutMsg, opts: { sender: 'bot' | 'agent' | 'system'; senderName?: string; waId?: string; idempotency?: string }) {
+export async function deliverOutbound(user: AppUser, msg: OutMsg, opts: { sender: 'bot' | 'agent' | 'system'; senderName?: string; waId?: string; idempotency?: string; preserveTyping?: boolean; signal?: AbortSignal }) {
+  // Recovery callers supply one overall deadline. Abort queries and bound optional fan-out;
+  // already-persisted messages are safe to retry through the same idempotency key.
+  const signal = opts.signal;
+  const query = <T extends { abortSignal(signal: AbortSignal): T }>(q: T): T => signal ? q.abortSignal(signal) : q;
+  const bounded = async <T>(work: PromiseLike<T>): Promise<T> => {
+    if (!signal) return await work;
+    signal.throwIfAborted();
+    let rejectAbort: (() => void) | undefined;
+    try {
+      return await Promise.race([Promise.resolve(work), new Promise<never>((_, reject) => {
+        rejectAbort = () => reject(signal.reason);
+        signal.addEventListener('abort', rejectAbort, { once: true });
+      })]);
+    } finally { if (rejectAbort) signal.removeEventListener('abort', rejectAbort); }
+  };
+  signal?.throwIfAborted();
   // Provider callbacks may retry. Namespace keys so clients cannot collide with provider deliveries.
   const clientId = opts.idempotency ? 'server:' + sha256(opts.idempotency) : null;
   if (clientId) {
-    const { data } = await db().from('app_messages').select(MSG_COLS).eq('client_id', clientId).eq('phone', user.phone).maybeSingle();
+    const { data } = await bounded(query(db().from('app_messages').select(MSG_COLS).eq('client_id', clientId).eq('phone', user.phone)).maybeSingle());
     if (data) return data;
   }
   // Even a trusted bot may select the wrong document. Check ownership before exposing links.
@@ -42,13 +58,13 @@ export async function deliverOutbound(user: AppUser, msg: OutMsg, opts: { sender
     const qref = u.pathname.includes('/object/public/hdsquotes/')
       ? decodeURIComponent(u.pathname.split('/').pop() || '').replace(/\.pdf$/i, '')
       : u.hostname === 'hds-nine.vercel.app' && u.pathname.includes('/pay') ? u.searchParams.get('quoteId') : null;
-    if (qref && !await getQuote(user.phone, qref)) throw new HttpError(403, 'document_not_owned');
+    if (qref && !await bounded(getQuote(user.phone, qref))) throw new HttpError(403, 'document_not_owned');
   }
   const payload: Record<string, any> = { ...msg.payload };
   // enrich: quote card for quote PDFs, pay buttons, quote refs in text
   try {
     const ref = payload.quote_ref;
-    if (ref) { const q = await getQuote(user.phone, ref); if (q) payload.quote = q; }
+    if (ref) { const q = await bounded(getQuote(user.phone, ref)); if (q) payload.quote = q; }
     const pays = (msg.body || '').match(PAY_URL_RE);
     if (pays?.length) payload.pay_links = [...new Set(pays)];
     const qrefs = (msg.body || '').replace(/https?:\/\/\S+/g, ' ').match(QUOTE_NUM_RE);
@@ -57,6 +73,12 @@ export async function deliverOutbound(user: AppUser, msg: OutMsg, opts: { sender
       const byShort = new Map<string, string>();
       for (const r of qrefs) { const k = r.slice(0, 15); if (!byShort.has(k) || r.length > byShort.get(k)!.length) byShort.set(k, r); }
       payload.quote_refs = [...byShort.values()].slice(0, 5);
+      // William sometimes names the newly created quote without repeating its PDF URL.
+      // Attach only a single unambiguous OWNED quote; figures/PDF come from the engine row, not AI prose.
+      if (!payload.quote && payload.quote_refs.length === 1) {
+        const q = await bounded(getQuote(user.phone, payload.quote_refs[0]));
+        if (q) payload.quote = q;
+      }
     }
   } catch (e) { log('enrich_failed', { err: (e as Error).message }); }
 
@@ -65,21 +87,24 @@ export async function deliverOutbound(user: AppUser, msg: OutMsg, opts: { sender
     type: msg.type, body: msg.body || null, media_url: msg.media_url || null, payload,
     wa_id: opts.waId || waId(), status: 'sent', client_id: clientId,
   };
-  const { data, error } = await db().from('app_messages').insert(row).select(MSG_COLS).single();
+  signal?.throwIfAborted();
+  const { data, error } = await bounded(query(db().from('app_messages').insert(row).select(MSG_COLS)).single());
   if (error) {
     if (error.code === '23505' && clientId) {
-      const { data: existing } = await db().from('app_messages').select(MSG_COLS).eq('client_id', clientId).eq('phone', user.phone).single();
+      const { data: existing } = await bounded(query(db().from('app_messages').select(MSG_COLS).eq('client_id', clientId).eq('phone', user.phone)).single());
       if (existing) return existing;
     }
     throw new HttpError(500, 'store_failed');
   }
-  await db().from('app_users').update({ typing_until: null }).eq('id', user.id);
-  await broadcast(user.realtime_topic, { type: 'sync' });
+  if (!opts.preserveTyping) await bounded(query(db().from('app_users').update({ typing_until: null }).eq('id', user.id)));
+  signal?.throwIfAborted();
+  await bounded(broadcast(user.realtime_topic, { type: 'sync' }));
+  signal?.throwIfAborted();
   // push: the service worker hides it if the chat is open and focused
-  await pushToUser(user.id, {
+  await bounded(pushToUser(user.id, {
     title: opts.sender === 'agent' ? (opts.senderName || 'HDS team') : 'William — HDS',
     body: preview(msg), url: '/', tag: 'chat',
-  }).catch(() => {});
+  }).catch(() => {}));
   return data;
 }
 
@@ -144,8 +169,9 @@ export async function customerSend(ctx: Ctx, s: Session) {
   if (!clientId) throw new HttpError(400, 'client_id_required');
   const type = String(b.type || 'text');
   if (!ALLOWED_IN.has(type)) throw new HttpError(400, 'bad_type');
-  const text = typeof b.body === 'string' ? b.body.slice(0, 4096) : '';
-  if (type === 'text' && !text.trim()) throw new HttpError(400, 'empty');
+  const text = typeof b.body === 'string' ? b.body : '';
+  if (text.length > 4096) throw new HttpError(400, 'message_too_long', 'Please split your message or attach a document. Messages are limited to 4,096 characters.');
+  if ((type === 'text' || type === 'interactive') && !text.trim()) throw new HttpError(400, 'empty');
 
   const { data: dup } = await db().from('app_messages').select(MSG_COLS + ', phone').eq('client_id', clientId).maybeSingle();
   if (dup) {
@@ -166,8 +192,9 @@ export async function customerSend(ctx: Ctx, s: Session) {
     if ((type === 'image' && !data.mime.startsWith('image/')) || (type === 'audio' && !data.mime.startsWith('audio/'))) throw new HttpError(400, 'media_mismatch');
     media = data;
   }
-  const location = type === 'location' && Number.isFinite(+b.location?.lat) && Number.isFinite(+b.location?.lon)
-    ? { lat: +b.location.lat, lon: +b.location.lon, name: String(b.location.name || '').slice(0, 120), address: String(b.location.address || '').slice(0, 200) } : null;
+  const location = type === 'location' && typeof b.location?.lat === 'number' && typeof b.location?.lon === 'number'
+    && Number.isFinite(b.location.lat) && Number.isFinite(b.location.lon) && Math.abs(b.location.lat) <= 90 && Math.abs(b.location.lon) <= 180
+    ? { lat: b.location.lat, lon: b.location.lon, name: String(b.location.name || '').slice(0, 120), address: String(b.location.address || '').slice(0, 200) } : null;
   if (type === 'location' && !location) throw new HttpError(400, 'bad_location');
 
   const id = waId();
@@ -224,9 +251,17 @@ export async function retryPending(s: Session) {
     .gt('created_at', new Date(Date.now() - 6 * 3600_000).toISOString()).order('created_at').limit(5);
   let n = 0;
   for (const m of data || []) {
+    // A transport failure is retryable only before William claimed the turn. After a claim,
+    // quoting/payment tools may already have run; never replay them blindly after a workflow error.
+    const { data: claim, error: claimError } = await db().from('app_turn_claims').select('message_id').eq('message_id', m.id).maybeSingle();
+    if (claimError || claim) continue;
     const media = m.media_id ? (await db().from('app_media').select('*').eq('id', m.media_id).single()).data : null;
     const ok = await forwardToBot(s.user, m, media, m.payload?.location || null);
-    if (ok) { n++; await db().from('app_messages').update({ bot_status: 'forwarded', status: 'delivered', delivered_at: new Date().toISOString() }).eq('id', m.id); }
+    if (ok) {
+      n++;
+      await db().from('app_messages').update({ bot_status: 'forwarded' }).eq('id', m.id).eq('bot_status', 'failed');
+      await db().from('app_messages').update({ status: 'delivered', delivered_at: new Date().toISOString() }).eq('id', m.id).eq('status', 'sent');
+    }
   }
   return { retried: n };
 }

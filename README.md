@@ -43,6 +43,9 @@ The shared HDS patch helper invokes that sync after prod patches. Deploy scripts
 - App conversation workflow: `nZy6oaIydjLzPmPz`
 - Dedicated Chatwoot inbox: `4` (HDS App)
 - App async update workflow: `YT7obMO6EMaA0Sa1`
+- App-only error/watchdog workflow: `W4kvBGp4k37IGl3W`
+
+With `TURN_RECOVERY_ENABLED=true`, generated app turns record completion only after a durable final reply (or explicit handover/debounce completion). Failed/stalled claims get a durable one-time notice; claimed quote/payment work is never blindly replayed. Existing claims are marked legacy so enabling recovery cannot produce old false alarms. Apply [migration 004](./db/migrations/004_turn_recovery.sql), deploy the API, then deploy/enable the recovery workflow before enabling that generator flag.
 
 The [async reconciler](./server/reconcile.ts) imports only allowlisted customer-facing branch/resolver/legacy-staff messages and observes invoice status changes. It never marks an invoice paid or initiates a financial transaction. Initial observations are silent. Its bounded round-robin scanning is suitable for the staff pilot; benchmark before scaling.
 
@@ -58,12 +61,14 @@ node tests/live-handover.mjs
 node tests/live-parity.mjs
 ```
 
+Use fresh reserved test phone arguments for repeated core/parity runs: n8n memory survives database cleanup, and existing valid quotes can retain an older promotion. The live pricing oracle reads the actual catalogue and ad eligibility, rather than hard-coding temporary prices. [Recovery fixtures](./tests/live-turn-recovery.mjs) exercise terminal callback ordering, delayed notices and final-delivery deduplication without running financial tools.
+
 These are not interchangeable with provider payment-sandbox testing or real-device notification tests. See the readiness checklist for precisely what has and has not passed.
 
 ## Rollback / stop
 
 1. Stop new invitations and revoke affected app sessions through the app tables.
-2. Deactivate **only** the two HDS App workflows above if necessary.
+2. Deactivate **only** the three HDS App workflows above if necessary.
 3. Roll back the HDS Chat Vercel deployment to a known-good deployment.
 4. Preserve app tables for audit/recovery; don't drop business data or remove existing WhatsApp workflows.
 

@@ -149,6 +149,41 @@ def transform(prod):
     lcc = sub(lcc, anchor, f"contextStr += '{CHANNEL_NOTE}'; // [HDS-APP-CHANNEL]\n" + anchor, "Load Customer Context")
     set_code("Load Customer Context", lcc)
 
+    if APP.get('TURN_RECOVERY_ENABLED') == 'true':
+        # Explicit terminal outcomes: receipt of the inbound webhook is NOT completion.
+        finish_call = (
+            "await this.helpers.httpRequest({method:'POST',"
+            + 'url:' + json.dumps(PUBLIC_URL + '/api/internal/turn/finish') + ','
+            + 'headers:' + json.dumps({'x-internal-key': APP['INTERNAL_KEY']}) + ','
+            + "body:{execution:String($execution.id),outcome:'completed'},json:true,timeout:25000});"
+        )
+        # The inherited sender swallows HTTP errors and returns sent:true. That is unsafe for the app.
+        reply = code_of('Send WhatsApp Reply')
+        final_return = "return [{ json: { output: output, sent: true, messageType: pdfMatch ? 'document' : 'text' } }];"
+        reply = sub(reply, final_return,
+            "if (!String(output).trim() || !response?.messages?.[0]?.id) throw new Error('HDS app reply delivery failed');" + '\n' + final_return,
+            'Send WhatsApp Reply delivery proof')
+        set_code('Send WhatsApp Reply', reply)
+        store = code_of('Store User Message')
+        store = sub(store, 'if (await newerUserMsgArrived()) return [];',
+                    'if (await newerUserMsgArrived()) { ' + finish_call + ' return []; }', 'debounced app turn completion')
+        set_code('Store User Message', store)
+        complete_name = 'Complete App Turn'
+        for terminal in ('Log Blocked Message', 'Send Showcase Carousel', 'Handle Branch Reply'):
+            if wf['connections'].get(terminal, {}).get('main'):
+                raise SystemExit('ABORT: terminal acquired connections: ' + terminal)
+            wf['connections'][terminal] = {'main': [[{'node': complete_name, 'type': 'main', 'index': 0}]]}
+        complete_code = finish_call + '\nreturn $input.all();'
+        node_check(complete_code, complete_name)
+        wf['nodes'].append({'id': str(uuid.uuid5(uuid.NAMESPACE_URL, 'hds-app-complete-turn')),
+                           'name': complete_name, 'type': 'n8n-nodes-base.code', 'typeVersion': 2,
+                           'position': [3200, 300], 'parameters': {'jsCode': complete_code}})
+        # Error routing is app-only, never inherit the production WhatsApp error handler.
+        wf.setdefault('settings', {}).pop('errorWorkflow', None)
+        recovery_state = os.path.join(HERE, 'recovery-workflow.json')
+        if os.path.exists(recovery_state):
+            wf['settings']['errorWorkflow'] = json.load(open(recovery_state))['id']
+
     # Stable delivery keys for callback retries; body hashing is done by the gateway.
     for n in wf['nodes']:
         p = n['parameters']

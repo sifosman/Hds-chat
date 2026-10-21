@@ -9,6 +9,7 @@ import { Ctx, HttpError, send } from './http.js';
 import { deliverOutbound } from './messages.js';
 import { renderTemplate, translateOutbound } from './translate.js';
 import { log, safeEqual, sha256, waId } from './util.js';
+import { finishTurn } from './turns.js';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -77,7 +78,18 @@ export async function gateway(ctx: Ctx) {
     }
     const id = waId();
     const key = String(ctx.headers['x-hds-delivery-key'] || '').slice(0, 500);
-    const delivered = await deliverOutbound(user, msg, { sender: 'bot', waId: id, idempotency: key ? `bot:${user.id}:${key}:${sha256(ctx.rawBody)}` : undefined });
+    const finalExecution = key.match(/^(\d+):Send WhatsApp Reply:\d+$/)?.[1];
+    if (finalExecution) {
+      const { data: claim, error } = await db().from('app_turn_claims').select('message_id,app_messages!inner(phone)').eq('execution_id', finalExecution).maybeSingle();
+      if (error || !claim || (claim as any).app_messages?.phone !== user.phone) throw new HttpError(403, 'turn_recipient_mismatch');
+    }
+    // A lost HTTP response must not turn the final PDF -> text fallback into two customer messages.
+    const deliveryId = finalExecution ? `bot:${user.id}:${finalExecution}:final-reply` : key ? `bot:${user.id}:${key}:${sha256(ctx.rawBody)}` : undefined;
+    const delivered = await deliverOutbound(user, msg, { sender: 'bot', waId: id, idempotency: deliveryId });
+    if (finalExecution) {
+      // Only after a proven durable insert. The terminal workflow callback retries bookkeeping if needed.
+      try { await finishTurn(finalExecution, 'completed'); } catch { log('turn_completion_deferred'); }
+    }
     log('gateway_delivered', { type: msg.type });
     return { messaging_product: 'whatsapp', contacts: [{ input: t.to, wa_id: t.to }], messages: [{ id: delivered.wa_id }] };
   }
