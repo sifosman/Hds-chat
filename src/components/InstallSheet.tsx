@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
-import { native } from '../lib/api';
-import { canPromptInstall, isIOS, isStandalone, onInstallChange, promptInstall } from '../lib/install';
+import { canPromptInstall, installDone, isIOS, onInstallChange, promptInstall } from '../lib/install';
 import { IconBell, IconChat, IconClose, IconDownload, IconQuotes, IconTag } from './Icons';
 
 const SNOOZE = 'hds.install.snooze';
@@ -13,7 +12,7 @@ export function InstallSheet() {
   const [, force] = useState(0);
   useEffect(() => onInstallChange(() => force(x => x + 1)), []);
   useEffect(() => {
-    if (isStandalone() || native.on || Number(localStorage.getItem(SNOOZE) || 0) > Date.now()) return;
+    if (installDone() || Number(localStorage.getItem(SNOOZE) || 0) > Date.now()) return;
     const t = setTimeout(() => setShow(true), 1200);
     return () => clearTimeout(t);
   }, []);

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { native } from '../lib/api';
-import { canPromptInstall, isIOS, isStandalone, onInstallChange, promptInstall } from '../lib/install';
+import { canPromptInstall, installDone, isIOS, onInstallChange, promptInstall } from '../lib/install';
 import { enablePush, pushState, PushState } from '../lib/push';
 import { IconBell, IconClose, IconDownload } from './Icons';
 
@@ -14,7 +14,7 @@ export function SetupCard({ inline }: { inline?: boolean }) {
   const [dismissed, setDismissed] = useState(() => inline && Number(localStorage.getItem(DISMISS) || 0) > Date.now());
   useEffect(() => onInstallChange(() => force(x => x + 1)), []);
 
-  const installed = isStandalone();
+  const installed = installDone();
   const needInstall = !installed;
   const needPush = push === 'default' || (push === 'native' && !localStorage.getItem('hds.native.push'));
   if (native.on && push === 'unsupported') return inline ? null : <div className="setup">Notifications are not enabled in this Android pilot build. Check the chat for replies, or use the installed web app with notifications.</div>;
