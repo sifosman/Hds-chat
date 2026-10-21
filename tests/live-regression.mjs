@@ -8,7 +8,7 @@ import { buildTextPayload } from '../../Chatbot Tests/harness/payload.js';
 import { whiteUnitPrice } from './live-pricing.mjs';
 
 const env = Object.fromEntries(readFileSync('.env.local', 'utf8').split('\n').filter(l => /^[A-Z_]+=/.test(l)).map(l => [l.slice(0, l.indexOf('=')), l.slice(l.indexOf('=') + 1)]));
-const BASE = (process.argv[2] || 'https://hds-chat.vercel.app').replace(/\/$/, '');
+const BASE = (process.argv[2] || 'https://chat.hdsgroup.co.za').replace(/\/$/, '');
 const SBH = { apikey: env.SUPABASE_SECRET_KEY, Authorization: 'Bearer ' + env.SUPABASE_SECRET_KEY, 'Content-Type': 'application/json' };
 const sb = async (p) => { const r = await fetch(`${env.SUPABASE_URL}/rest/v1/${p}`, { headers: SBH }); if (!r.ok) throw Error('Supabase ' + r.status + ' ' + (await r.text()).slice(0, 200)); return r.json(); };
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));

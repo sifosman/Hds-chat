@@ -22,7 +22,7 @@ export function Invite({ token, onDone, onFallback }: { token: string; onDone: (
 
   return (
     <div className="auth">
-      <img className="auth-logo" src="/icons/logo-wide.png" alt="HDS Cut & Edge" />
+      <img className="auth-logo" src="/icons/logo-dark.png" alt="HDS Cut & Edge" />
       {err ? (
         <>
           <h1>Link not valid</h1>

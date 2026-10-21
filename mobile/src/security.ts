@@ -1,4 +1,4 @@
-export const APP_ORIGIN = 'https://hds-chat.vercel.app';
+export const APP_ORIGIN = 'https://chat.hdsgroup.co.za';
 export const HOME_URL = `${APP_ORIGIN}/`;
 
 function parseHttps(value: unknown): URL | null {

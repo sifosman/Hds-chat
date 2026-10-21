@@ -1,7 +1,7 @@
 // Synthetic app-only fixtures; no n8n tool execution, quotes, payments or real customer messages.
 import{readFileSync,writeFileSync}from'node:fs';import{randomUUID}from'node:crypto';import{createClient}from'@supabase/supabase-js';
 const env=Object.fromEntries(readFileSync('.env.local','utf8').split('\n').filter(l=>l.includes('=')).map(l=>[l.slice(0,l.indexOf('=')),l.slice(l.indexOf('=')+1)]));
-const base='https://hds-chat.vercel.app/api',phone='27900000830';const d=createClient(env.SUPABASE_URL,env.SUPABASE_SECRET_KEY);let token;const results=[];
+const base='https://chat.hdsgroup.co.za/api',phone='27900000830';const d=createClient(env.SUPABASE_URL,env.SUPABASE_SECRET_KEY);let token;const results=[];
 function check(name,pass){results.push({name,pass:!!pass});console.log(pass?'PASS':'FAIL',name);if(!pass)throw Error(name);}
 async function req(path,body,headers={}){const r=await fetch(base+path,{method:'POST',headers:{'Content-Type':'application/json','x-internal-key':env.INTERNAL_KEY,...(token?{Authorization:'Bearer '+token}:{}),...headers},body:JSON.stringify(body)});return{status:r.status,j:await r.json()};}
 async function fixture(){const execution=String(Date.now())+String(Math.floor(Math.random()*1000)).padStart(3,'0');const wa_id='wamid.FIXTURE'+randomUUID();const{data:m,error}=await d.from('app_messages').insert({phone,direction:'in',sender:'customer',type:'text',body:'TEST ONLY turn recovery fixture',wa_id,client_id:'fixture-'+randomUUID()}).select('*').single();if(error)throw error;const c=await d.rpc('app_claim_turn',{p_wa_id:wa_id,p_phone:phone,p_execution:execution});if(c.error||c.data!==true)throw Error('fixture claim failed');return{m,execution};}

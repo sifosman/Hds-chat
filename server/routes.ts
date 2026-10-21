@@ -1,4 +1,4 @@
-import { createInvite, invitePeek, inviteRedeem, logout, otpStart, otpVerify, publicUser, requireInternal, requireSession } from './auth.js';
+import { createInvite, invitePeek, inviteRedeem, logout, otpStart, otpVerify, publicUser, requireInternal, requireSession, sendWhatsAppInvite } from './auth.js';
 import { chatwootWebhook } from './chatwoot.js';
 import { db, event, rateOk } from './db.js';
 import { ENV } from './env.js';
@@ -103,6 +103,7 @@ router
 
   // ---- internal (n8n / ops)
   .on('POST', '/internal/invite', async ctx => { requireInternal(ctx); return createInvite(ctx.body.phone, { channel: ctx.body.channel || 'internal' }); })
+  .on('POST', '/internal/invite/send', async ctx => { requireInternal(ctx); return sendWhatsAppInvite(ctx); })
 
   .on('POST', '/internal/turn/claim', async ctx => {
     requireInternal(ctx);

@@ -4,7 +4,7 @@
 
 **Implemented and deployed as a staff-test pilot; not approved for mass customer migration.**
 
-- Web: https://hds-chat.vercel.app
+- Web: https://chat.hdsgroup.co.za (Vercel default `hds-chat.vercel.app` remains active)
 - Signed APK: https://expo.dev/artifacts/eas/Sxq09_dSzQOGF7XUJp-OEdx3TQ5Lj1Bt__41pJceJFk.apk
 - Expo project: `@sifosman/hds-chat-android`, separate project and signing key from Funxon.
 - App n8n workflow: `nZy6oaIydjLzPmPz`; app async updates: `YT7obMO6EMaA0Sa1`.
@@ -22,6 +22,7 @@
 - Signed storage uploads and direct short-lived media downloads (avoids Vercel response-size limit).
 - Web-push code and APK download/install guidance; Android native push deliberately unavailable until Firebase setup.
 - Additive async notification projection for allowlisted branch/resolver/legacy-staff logs and observed invoice transitions. Existing source history and initially paid invoices baseline silently. It does not mark invoices paid.
+- **WhatsApp invite migration path (21 Oct evening)**: `POST /api/internal/invite/send` creates a single-use invite and WhatsApps the `/i/<token>` link inside the customer's open 24h window — no phone entry or OTP on the customer side (`scripts/send-invite.mjs`). Auto-shown install bottom-sheet (`InstallSheet`): one-tap `beforeinstallprompt` install where offered, guided Share/⋮-menu steps on iOS/other browsers, 7-day snooze.
 
 ## Verified
 

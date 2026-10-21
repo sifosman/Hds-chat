@@ -5,7 +5,7 @@ export const ENV = {
   SUPABASE_URL: e('SUPABASE_URL', 'https://xzsibbbghotreolzwnyk.supabase.co'),
   SUPABASE_SECRET_KEY: e('SUPABASE_SECRET_KEY'),
   SUPABASE_PUBLISHABLE_KEY: e('SUPABASE_PUBLISHABLE_KEY', 'sb_publishable_y2PC2TFlxHK0sneFtwqxeg_3uTHyUuu'),
-  PUBLIC_URL: e('PUBLIC_URL', 'https://hds-chat.vercel.app'),
+  PUBLIC_URL: e('PUBLIC_URL', 'https://chat.hdsgroup.co.za'),
   // shared secret embedded in the gateway path the n8n app workflow calls
   GATEWAY_SECRET: e('GATEWAY_SECRET'),
   // n8n "HDS App Channel" webhook + header secret
@@ -13,7 +13,7 @@ export const ENV = {
   N8N_APP_KEY: e('N8N_APP_KEY'),
   // phone_number_id we present to the bot in webhook payloads (any stable id)
   APP_PHONE_NUMBER_ID: e('APP_PHONE_NUMBER_ID', 'hdsapp'),
-  APP_DISPLAY_NUMBER: e('APP_DISPLAY_NUMBER', '27679020239'),
+  APP_DISPLAY_NUMBER: e('APP_DISPLAY_NUMBER', '27787060895'),
   // Chatwoot "HDS App" API inbox
   CHATWOOT_URL: e('CHATWOOT_URL', 'https://chat.owdsolutions.co.za'),
   CHATWOOT_TOKEN: e('CHATWOOT_TOKEN'),

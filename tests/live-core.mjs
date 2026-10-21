@@ -3,7 +3,7 @@ import {readFileSync,writeFileSync} from 'node:fs';
 import {randomUUID} from 'node:crypto';
 import {whiteUnitPrice} from './live-pricing.mjs';
 const env=Object.fromEntries(readFileSync('.env.local','utf8').split('\n').filter(l=>/^[A-Z_]+=/i.test(l)).map(l=>[l.slice(0,l.indexOf('=')),l.slice(l.indexOf('=')+1)]));
-const base=process.argv[2]||'https://hds-chat.vercel.app';
+const base=process.argv[2]||'https://chat.hdsgroup.co.za';
 const phone=process.argv[3]||'27900000831';
 if(!/^2790000\d{4}$/.test(phone))throw Error('Synthetic phones only');
 let token;const results=[];const turnIds=[];

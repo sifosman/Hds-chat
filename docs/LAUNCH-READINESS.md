@@ -6,7 +6,7 @@
 
 | Gate | Status | Evidence / scope |
 |---|---|---|
-| PWA deployment and API | PASS | https://hds-chat.vercel.app; manifest, API health and signed-in browser checked |
+| PWA deployment and API | PASS | https://chat.hdsgroup.co.za (also reachable at https://hds-chat.vercel.app); manifest, API health and signed-in browser checked |
 | Android APK compilation/signature | PASS | EAS `569b5746-7eec-4945-8df5-ae94aa4baced`; package `za.co.hdsgroup.chat` |
 | Unit/security/client regression | PASS | 146 tests across 10 web/server suites; 5 native security tests |
 | Invite expiry/replay/concurrent redeem | PASS | Mock tests, actual SQL rollback assertions, live one-winner concurrent redemption |

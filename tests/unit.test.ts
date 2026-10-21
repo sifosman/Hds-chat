@@ -70,7 +70,7 @@ describe('metaInbound is parseable by Extract Meta Payload', () => {
     return { phone: msg.from, name: contact?.profile?.name, text, imageId, mediaId, messageId: msg.id, msgType: t };
   };
   it('text', () => {
-    const b = metaInbound({ phone: '27821234567', name: 'Sam', waId: 'wamid.APP1', type: 'text', text: 'hello', phoneNumberId: 'hdsapp', displayNumber: '27679020239' });
+    const b = metaInbound({ phone: '27821234567', name: 'Sam', waId: 'wamid.APP1', type: 'text', text: 'hello', phoneNumberId: 'hdsapp', displayNumber: '27787060895' });
     expect(extract(b)).toEqual({ phone: '27821234567', name: 'Sam', text: 'hello', imageId: '', mediaId: '', messageId: 'wamid.APP1', msgType: 'text' });
   });
   it('image with caption', () => {

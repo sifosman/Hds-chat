@@ -1,7 +1,7 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import {randomUUID} from 'node:crypto';
 const env=Object.fromEntries(readFileSync('.env.local','utf8').split('\n').filter(l=>l.includes('=')).map(l=>[l.slice(0,l.indexOf('=')),l.slice(l.indexOf('=')+1)]));
-const base='https://hds-chat.vercel.app'; const checks=[];
+const base='https://chat.hdsgroup.co.za'; const checks=[];
 async function req(p,body,token,headers={}){const r=await fetch(base+'/api'+p,{method:body?'POST':'GET',headers:{'Content-Type':'application/json',...(token?{Authorization:'Bearer '+token}:{}),...headers},body:body?JSON.stringify(body):undefined});return {status:r.status,body:await r.json()};}
 function ok(name,test){checks.push({name,pass:!!test});console.log(test?'PASS':'FAIL',name);if(!test)throw Error(name);}
 async function login(phone){const inv=await req('/internal/invite',{phone,channel:'security-test'},null,{'x-internal-key':env.INTERNAL_KEY});const t=inv.body.url.split('/i/')[1];const [a,b]=await Promise.all([req('/auth/invite/redeem',{token:t,platform:'test'}),req('/auth/invite/redeem',{token:t,platform:'test'})]);ok('concurrent invite redemption single winner',[a,b].filter(r=>r.status===200).length===1 && [a,b].filter(r=>r.status===410).length===1);return [a,b].find(r=>r.status===200).body.token;}

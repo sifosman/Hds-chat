@@ -41,7 +41,7 @@
           "data": [
             {
               "scheme": "https",
-              "host": "hds-chat.vercel.app",
+              "host": "chat.hdsgroup.co.za",
               "pathPrefix": "/"
             }
           ],

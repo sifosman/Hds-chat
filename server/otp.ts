@@ -31,18 +31,28 @@ async function viaSms(phone: string, code: string): Promise<string | null> {
   return r.ok ? null : 'sms_http_' + r.status;
 }
 
-async function viaWhatsAppWindow(phone: string, code: string): Promise<string | null> {
-  if (!ENV.WA_TOKEN || !ENV.WA_PHONE_ID) return 'wa_not_configured';
+/** True when the customer has messaged us on WhatsApp in the last 23h (free-form window). */
+export async function waWindowOpen(phone: string): Promise<boolean> {
   const { data, error } = await db().from('ai_conversations').select('created_at')
     .eq('phone_number', phone).eq('role', 'user').order('created_at', { ascending: false }).limit(1).maybeSingle();
   const age = Date.now() - Date.parse(data?.created_at);
-  if (error || !data || !Number.isFinite(age) || age < 0 || age >= 23 * 3600_000) return 'wa_window_closed';
+  return !error && !!data && Number.isFinite(age) && age >= 0 && age < 23 * 3600_000;
+}
+
+/** Free-form WhatsApp text via the Cloud API. Returns null on success, else a reason code. */
+export async function waSendText(phone: string, body: string): Promise<string | null> {
+  if (!ENV.WA_TOKEN || !ENV.WA_PHONE_ID) return 'wa_not_configured';
   const r = await fetch(`https://graph.facebook.com/v20.0/${ENV.WA_PHONE_ID}/messages`, {
     method: 'POST', signal: AbortSignal.timeout(10_000), headers: { Authorization: 'Bearer ' + ENV.WA_TOKEN, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ messaging_product: 'whatsapp', to: phone, type: 'text', text: { body: text(code) } }),
+    body: JSON.stringify({ messaging_product: 'whatsapp', to: phone, type: 'text', text: { body } }),
   });
-  if (!r.ok) return 'wa_http_' + r.status;
-  return null;
+  return r.ok ? null : 'wa_http_' + r.status;
+}
+
+async function viaWhatsAppWindow(phone: string, code: string): Promise<string | null> {
+  if (!ENV.WA_TOKEN || !ENV.WA_PHONE_ID) return 'wa_not_configured';
+  if (!(await waWindowOpen(phone))) return 'wa_window_closed';
+  return waSendText(phone, text(code));
 }
 
 async function viaEmail(phone: string, code: string): Promise<string | null> {
@@ -82,6 +92,6 @@ export async function deliverOtp(phone: string, code: string, preferred?: string
   log('otp_failed', { phone, reasons });
   return {
     ok: false, reasons,
-    message: 'We couldn\'t send you a code right now. Send us any WhatsApp message on 067 902 0239, then tap "Send code" again and we\'ll send the code to your WhatsApp.',
+    message: 'We couldn\'t send you a code right now. Send us any WhatsApp message on 078 706 0895, then tap "Send code" again and we\'ll send the code to your WhatsApp.',
   };
 }

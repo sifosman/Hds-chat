@@ -18,8 +18,8 @@ test('native patches enforce origin/main-frame checks, no legacy bridge, safe do
     hardenWebView(fixture);
     const read = (name: string) => fs.readFileSync(path.join(fixture, nativePath, name), 'utf8');
     const bridge = read('RNCWebView.java');
-    assert.ok(bridge.includes('if (isMainFrame && "https://hds-chat.vercel.app".equals(sourceOrigin.toString()))'));
-    assert.ok(bridge.includes('Set.of("https://hds-chat.vercel.app")'));
+    assert.ok(bridge.includes('if (isMainFrame && "https://chat.hdsgroup.co.za".equals(sourceOrigin.toString()))'));
+    assert.ok(bridge.includes('Set.of("https://chat.hdsgroup.co.za")'));
     assert.ok(!bridge.includes('Set.of("*")'));
     assert.ok(!bridge.includes('addJavascriptInterface(fallbackBridge, JAVASCRIPT_INTERFACE);'));
     const chrome = read('RNCWebChromeClient.java');

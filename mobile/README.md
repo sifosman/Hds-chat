@@ -1,6 +1,6 @@
 # HDS Chat Android
 
-Isolated Expo SDK 54 Android WebView shell for **https://hds-chat.vercel.app**. The parent PWA is deployed separately; this package does not bundle or deploy it.
+Isolated Expo SDK 54 Android WebView shell for **https://chat.hdsgroup.co.za**. The parent PWA is deployed separately; this package does not bundle or deploy it.
 
 - Android application ID: `za.co.hdsgroup.chat`
 - EAS owner/project: `sifosman/hds-chat-android`
@@ -31,7 +31,7 @@ Use an actual development/native build, **not Expo Go**, when testing security. 
 
 ## Security model
 
-Only exact `https://hds-chat.vercel.app` HTTPS origin may navigate inside the app (no user-info or alternate ports). External HTTPS links, popup links, PDF URLs and Android download responses go to a browser/custom tab without copying app authorization headers or cookies. `javascript:`, `file:`, `data:`, `blob:`, `intent:`, `http:`, and other schemes are blocked. External payment providers and PDF hosts are not added to the WebView trust list. Browser redirects are outside the WebView trust boundary.
+Only exact `https://chat.hdsgroup.co.za` HTTPS origin may navigate inside the app (no user-info or alternate ports). External HTTPS links, popup links, PDF URLs and Android download responses go to a browser/custom tab without copying app authorization headers or cookies. `javascript:`, `file:`, `data:`, `blob:`, `intent:`, `http:`, and other schemes are blocked. External payment providers and PDF hosts are not added to the WebView trust list. Browser redirects are outside the WebView trust boundary.
 
 `originWhitelist={['*']}` deliberately disables react-native-webview's implicit OS `Linking.openURL` fallback for non-allowlisted URLs. The **actual allowlist** is enforced in the native plugin and `src/security.ts`; wildcard is not permission to load arbitrary pages. The plugin blocks untrusted native navigation even when the JS navigation callback is late, and blocks untrusted main-document requests. API/image subresources can still use the PWA's existing remote HTTPS services.
 
@@ -72,7 +72,7 @@ To enable later:
 
 ## Deep links
 
-`hds-chat://app/i/INVITE_TOKEN` maps to the trusted `/i/INVITE_TOKEN` path; cold/warm trusted HTTPS links are also handled. Arbitrary external URLs in intents are ignored. Android HTTPS auto-verification requires the parent to deploy `https://hds-chat.vercel.app/.well-known/assetlinks.json` with package `za.co.hdsgroup.chat` and **this APK's signing certificate SHA-256**. Obtain the fingerprint from this build/signing key, not Funxon. Until then HTTPS links may open in a browser instead; the custom scheme remains available. Existing PWA paths determine what a deep link displays.
+`hds-chat://app/i/INVITE_TOKEN` maps to the trusted `/i/INVITE_TOKEN` path; cold/warm trusted HTTPS links are also handled. Arbitrary external URLs in intents are ignored. Android HTTPS auto-verification requires the parent to deploy `https://chat.hdsgroup.co.za/.well-known/assetlinks.json` with package `za.co.hdsgroup.chat` and **this APK's signing certificate SHA-256**. Obtain the fingerprint from this build/signing key, not Funxon. Until then HTTPS links may open in a browser instead; the custom scheme remains available. Existing PWA paths determine what a deep link displays.
 
 ## Physical-device acceptance checklist (not yet verified)
 

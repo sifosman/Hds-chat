@@ -149,6 +149,6 @@ Expo SDK 54 app `za.co.hdsgroup.chat`, EAS profiles copied from Funxon (`preview
 1. SMS provider for OTP + campaign? [SMSPortal or BulkSMS; build pluggable, OTP via eligible WhatsApp reply window until SMS is configured; private single-use invitations for staff testing]
 2. Approve the one-time in-chat invite on the live WhatsApp bot? [yes, once per customer, kill switch]
 3. Firebase project for Android push? [create one under the HDS Google account; app ships without native push until then]
-4. Domain? [`chat.hdsgroup.co.za` if DNS is available, else `hds-chat.vercel.app`]
+4. Domain? [`chat.hdsgroup.co.za` — assigned to the Vercel project; `hds-chat.vercel.app` remains active]
 5. App name/brand? ["HDS Group" with the existing HDS logo, chat persona William]
 6. Re-run `vercel login` (token expired) so I can deploy.

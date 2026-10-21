@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { IconChat, IconQuotes, IconUser } from './components/Icons';
+import { InstallSheet } from './components/InstallSheet';
 import { api, auth, native } from './lib/api';
 import { chat, send, start, stop } from './lib/chat';
 import { cachedUser, cacheUser, wipeLocal } from './lib/localdb';
@@ -111,6 +112,7 @@ export function App() {
         <button className={tab === 'quotes' ? 'on' : ''} onClick={() => setTab('quotes')}><IconQuotes />Quotes</button>
         <button className={tab === 'account' ? 'on' : ''} onClick={() => setTab('account')}><IconUser />Account</button>
       </nav>
+      <InstallSheet />
     </div>
   );
 }

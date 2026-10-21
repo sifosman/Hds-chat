@@ -1,7 +1,7 @@
 import { db, event, rateOk } from './db.js';
 import { ENV, isTestPhone } from './env.js';
 import { Ctx, HttpError } from './http.js';
-import { deliverOtp } from './otp.js';
+import { deliverOtp, waSendText, waWindowOpen } from './otp.js';
 import { maskName, maskPhone, normalizePhone, randomCode, randomToken, safeEqual, sha256 } from './util.js';
 
 export interface AppUser { id: string; phone: string; name: string | null; realtime_topic: string; status: string; created_at: string; wa_history_cutoff: string }
@@ -168,6 +168,24 @@ export async function inviteRedeem(ctx: Ctx) {
   if (inv.status !== 'verified' || typeof inv.phone !== 'string') throw new HttpError(503, 'auth_unavailable');
   const user = await getOrCreateUser(inv.phone, 'invite:' + (inv.channel || 'manual'));
   return createSession(user, ctx, 'invite');
+}
+
+const inviteText = (name: string | null, url: string) =>
+  `Hi${name ? ' ' + name : ''}! HDS now has its own chat app — your quotes, cutting lists and our replies in one place, no WhatsApp needed.\n\n` +
+  `Tap your personal link to open it — no sign-in code needed:\n${url}\n\n` +
+  `Then tap "Add to home screen" and you're set. The link works once and expires in 3 days, so please don't share it.`;
+
+/** Internal: create a single-use invite and deliver it over WhatsApp inside the open 24h window. */
+export async function sendWhatsAppInvite(ctx: Ctx) {
+  const phone = normalizePhone(ctx.body.phone);
+  if (!phone || isTestPhone(phone)) throw new HttpError(400, 'invalid_phone');
+  if (!(await rateOk('invsend:' + phone, 3600, 5))) throw new HttpError(429, 'rate_limited', 'Too many invites sent to this number. Try again later.');
+  if (!(await waWindowOpen(phone))) throw new HttpError(422, 'wa_window_closed', 'This number has not messaged us on WhatsApp in the last 23h. Ask them to send any message first, then resend.');
+  const invite = await createInvite(phone, { channel: 'whatsapp-invite' });
+  const err = await waSendText(phone, inviteText(maskName(await displayName(phone)), invite.url));
+  if (err) throw new HttpError(502, 'wa_send_failed', 'WhatsApp delivery failed (' + err + '). Deliver this link manually: ' + invite.url);
+  await event(phone, 'invite_sent', { channel: 'whatsapp' });
+  return { ok: true, sent: 'whatsapp', url: invite.url };
 }
 
 export async function logout(ctx: Ctx, s: Session) {

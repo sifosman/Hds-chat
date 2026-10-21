@@ -44,7 +44,7 @@ export function Login({ onDone }: { onDone: (me: Me) => void }) {
 
   return (
     <div className="auth">
-      <img className="auth-logo" src="/icons/logo-wide.png" alt="HDS Cut & Edge" />
+      <img className="auth-logo" src="/icons/logo-dark.png" alt="HDS Cut & Edge" />
       <h1>Chat with HDS</h1>
       <p className="auth-sub">Quotes, cutting lists, payments and your nearest branch — in our own app.</p>
       {step === 'phone' ? (
@@ -57,7 +57,7 @@ export function Login({ onDone }: { onDone: (me: Me) => void }) {
           <p className="hint">Use the number you chat to us on WhatsApp with — your quotes and history come with you.</p>
           <button className="btn primary block" disabled={busy || phone.replace(/\D/g, '').length < 9}>{busy ? 'Sending…' : 'Send code'}</button>
           {err && <div className="error">{err}</div>}
-          {noChannel && <a className="btn block" href="https://wa.me/27679020239?text=Hi%20HDS%2C%20I%27d%20like%20my%20app%20code">Message us on WhatsApp</a>}
+          {noChannel && <a className="btn block" href="https://wa.me/27787060895?text=Hi%20HDS%2C%20I%27d%20like%20my%20app%20code">Message us on WhatsApp</a>}
         </form>
       ) : (
         <form onSubmit={e => { e.preventDefault(); verify(); }}>

@@ -2,7 +2,7 @@
 
 Business chat with William and HDS staff, delivered as an installable web app and a signed Android APK.
 
-- Web: https://hds-chat.vercel.app
+- Web: https://chat.hdsgroup.co.za
 - Android pilot APK: https://expo.dev/artifacts/eas/Sxq09_dSzQOGF7XUJp-OEdx3TQ5Lj1Bt__41pJceJFk.apk
 - [Progress](./PROGRESS.md) · [Launch readiness](./docs/LAUNCH-READINESS.md) · [Revised plan](./docs/PLAN.md) · [Android setup](./mobile/README.md)
 

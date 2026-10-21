@@ -1,7 +1,7 @@
 // Reserved synthetic phones only. Exercises real n8n media downloads and analysis, no payment submissions.
 import {readFileSync,writeFileSync} from 'node:fs';import {randomUUID} from 'node:crypto';
 const env=Object.fromEntries(readFileSync('.env.local','utf8').split('\n').filter(l=>l.includes('=')).map(l=>[l.slice(0,l.indexOf('=')),l.slice(l.indexOf('=')+1)]));
-const base='https://hds-chat.vercel.app';const results=[];
+const base='https://chat.hdsgroup.co.za';const results=[];
 async function request(path,body,token,headers={}){const r=await fetch(base+'/api'+path,{method:body?'POST':'GET',headers:{'Content-Type':'application/json',...(token?{Authorization:'Bearer '+token}:{}),...headers},body:body?JSON.stringify(body):undefined});const j=await r.json();if(!r.ok)throw Error(path+' HTTP '+r.status+' '+(j.error||''));return j;}
 async function trial({phone,name,type,mime,bytes,caption,expect}) {
 const inv=await request('/internal/invite',{phone,channel:'media-test'},null,{'x-internal-key':env.INTERNAL_KEY});const {token}=await request('/auth/invite/redeem',{token:inv.url.split('/i/')[1],platform:'test'});
