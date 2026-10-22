@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { canPromptInstall, installDone, isIOS, onInstallChange, promptInstall } from '../lib/install';
+import { api, getConfig } from '../lib/api';
+import { canPromptInstall, installDone, isAndroid, isIOS, onInstallChange, promptInstall } from '../lib/install';
 import { IconBell, IconChat, IconClose, IconDownload, IconQuotes, IconTag } from './Icons';
 
 const SNOOZE = 'hds.install.snooze';
@@ -9,8 +10,10 @@ const SNOOZE_MS = 7 * 864e5;
  *  One-tap install where the browser offers beforeinstallprompt; guided steps elsewhere. */
 export function InstallSheet() {
   const [show, setShow] = useState(false);
+  const [apk, setApk] = useState<string | null>(null);
   const [, force] = useState(0);
   useEffect(() => onInstallChange(() => force(x => x + 1)), []);
+  useEffect(() => { getConfig().then(c => setApk(c.android_apk_url)).catch(() => {}); }, []);
   useEffect(() => {
     if (installDone() || Number(localStorage.getItem(SNOOZE) || 0) > Date.now()) return;
     const t = setTimeout(() => setShow(true), 1200);
@@ -20,13 +23,15 @@ export function InstallSheet() {
 
   const snooze = () => { localStorage.setItem(SNOOZE, String(Date.now() + SNOOZE_MS)); setShow(false); };
   const install = async () => { if (await promptInstall()) setShow(false); else snooze(); };
+  const getApk = () => { api('/events', { method: 'POST', body: { event: 'apk_download' } }).catch(() => {}); location.href = apk!; snooze(); };
+  const apkCta = !!apk && isAndroid();
 
   return (
     <div className="sheet-backdrop" onClick={snooze}>
       <div className="sheet install-sheet" role="dialog" aria-label="Install the HDS app" onClick={e => e.stopPropagation()}>
         <button className="sheet-close" onClick={snooze} aria-label="Not now"><IconClose size={20} /></button>
         <img className="install-icon" src="/icons/icon-192.png" alt="" />
-        <h2>Put HDS on your home screen</h2>
+        <h2>{apkCta ? 'Get the HDS app' : 'Put HDS on your home screen'}</h2>
         <p className="install-sub">Your chat, quotes and pay links — one tap away, no WhatsApp needed.</p>
         <ul className="install-perks">
           <li><IconChat size={18} /> Chat with William &amp; the team</li>
@@ -34,7 +39,16 @@ export function InstallSheet() {
           <li><IconBell size={18} /> Know the moment we reply</li>
           <li><IconTag size={18} /> App-only specials &amp; promos</li>
         </ul>
-        {canPromptInstall() ? (
+        {apkCta ? (
+          <>
+            <button className="btn block install-cta cta" onClick={getApk}><IconDownload size={18} /> Install the app</button>
+            <div className="install-steps">
+              <p><b>1.</b> Tap <b>Install the app</b> — the download starts</p>
+              <p><b>2.</b> Open the downloaded file and tap <b>Install</b></p>
+              <p><b>3.</b> If Android asks, allow installs from your browser — it's the official HDS app</p>
+            </div>
+          </>
+        ) : canPromptInstall() ? (
           <button className="btn block install-cta cta" onClick={install}><IconDownload size={18} /> Install app</button>
         ) : isIOS() ? (
           <div className="install-steps">
