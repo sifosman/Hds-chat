@@ -44,7 +44,7 @@ export const Bubble = memo(function Bubble({ m, showName, isLast, onImage, onQuo
   const name = m.sender === 'agent' ? (m.sender_name || 'HDS team') : m.sender === 'bot' ? 'William' : m.sender === 'system' ? 'HDS service' : '';
   const isHistory = p.channel === 'whatsapp';
   return (
-    <div className={`row ${mine ? 'mine' : 'theirs'}${isHistory ? ' history' : ''}`}>
+    <div className={`row ${mine ? 'mine' : 'theirs'}${isHistory ? ' history' : ''}${showName ? ' grp' : ''}`}>
       <div className={`bubble type-${m.type}${m.sender === 'agent' ? ' agent' : ''}`}>
         {showName && !mine && <div className="sender">{name}{m.sender === 'agent' && <span className="staff-tag">HDS team</span>}</div>}
 

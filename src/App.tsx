@@ -64,6 +64,16 @@ export function App() {
     return () => stop();
   }, [me?.id]);
 
+  // Tell the Android shell which status-bar icon style fits the screen on top.
+  useEffect(() => {
+    if (!native.on) return;
+    const dark = window.matchMedia('(prefers-color-scheme: dark)');
+    const post = () => native.post({ type: 'chrome', bar: me ? 'light' : dark.matches ? 'light' : 'dark' });
+    post();
+    dark.addEventListener('change', post);
+    return () => dark.removeEventListener('change', post);
+  }, [me]);
+
   const signedIn = async (u: Me) => {
     const epoch = ++generation.current;
     const token = auth.token;
@@ -108,9 +118,9 @@ export function App() {
         {tab === 'account' && <Account me={me} onLogout={logout} onAsk={ask} />}
       </main>
       <nav className="tabs">
-        <button className={tab === 'chat' ? 'on' : ''} onClick={() => setTab('chat')}><IconChat />Chat</button>
-        <button className={tab === 'quotes' ? 'on' : ''} onClick={() => setTab('quotes')}><IconQuotes />Quotes</button>
-        <button className={tab === 'account' ? 'on' : ''} onClick={() => setTab('account')}><IconUser />Account</button>
+        <button className={tab === 'chat' ? 'on' : ''} onClick={() => setTab('chat')}><span className="tab-ic"><IconChat /></span>Chat</button>
+        <button className={tab === 'quotes' ? 'on' : ''} onClick={() => setTab('quotes')}><span className="tab-ic"><IconQuotes /></span>Quotes</button>
+        <button className={tab === 'account' ? 'on' : ''} onClick={() => setTab('account')}><span className="tab-ic"><IconUser /></span>Account</button>
       </nav>
       <InstallSheet />
     </div>

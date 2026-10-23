@@ -37,13 +37,14 @@ export function appDeepLink(value: unknown): string | null {
   } catch { return null; }
 }
 
-export type BridgeMessage = { type: 'ready' } | { type: 'push:register' } | { type: 'camera:request' } | { type: 'open'; url: string };
+export type BridgeMessage = { type: 'ready' } | { type: 'push:register' } | { type: 'camera:request' } | { type: 'open'; url: string } | { type: 'chrome'; bar: 'light' | 'dark' };
 export function parseBridgeMessage(raw: string, sourceUrl: string): BridgeMessage | null {
   if (!isTrustedUrl(sourceUrl) || raw.length > 16384) return null;
   try {
     const message: unknown = JSON.parse(raw);
     if (!message || typeof message !== 'object' || !('type' in message)) return null;
     if (message.type === 'ready' || message.type === 'push:register' || message.type === 'camera:request') return { type: message.type };
+    if (message.type === 'chrome' && 'bar' in message && (message.bar === 'light' || message.bar === 'dark')) return { type: 'chrome', bar: message.bar };
     if (message.type === 'open' && 'url' in message) {
       const url = externalHttps(message.url);
       return url ? { type: 'open', url } : null;

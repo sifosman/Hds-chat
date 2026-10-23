@@ -95,12 +95,14 @@ export function Composer({ onError }: { onError: (m: string) => void }) {
         </div>
       )}
       <div className="composer">
-        <button className="icon-btn" onClick={() => setMenu(m => !m)} aria-label="Attach"><IconClip /></button>
-        <textarea
-          ref={ta} rows={1} value={text} placeholder="Message" aria-label="Message"
-          onChange={e => setText(e.target.value)}
-          onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey && window.matchMedia('(pointer: fine)').matches) { e.preventDefault(); sendText(); } }}
-        />
+        <div className="composer-pill">
+          <button className="icon-btn" onClick={() => setMenu(m => !m)} aria-label="Attach"><IconClip /></button>
+          <textarea
+            ref={ta} rows={1} value={text} placeholder="Message" aria-label="Message"
+            onChange={e => setText(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey && window.matchMedia('(pointer: fine)').matches) { e.preventDefault(); sendText(); } }}
+          />
+        </div>
         {text.trim()
           ? <button className="send-btn" onClick={sendText} aria-label="Send"><IconSend /></button>
           : <button className="send-btn" onClick={startRec} aria-label="Record voice note"><IconMic /></button>}

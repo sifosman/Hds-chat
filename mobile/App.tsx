@@ -1,12 +1,12 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, BackHandler, Linking, PermissionsAndroid, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import * as WebBrowser from 'expo-web-browser';
 import * as Notifications from 'expo-notifications';
-import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { WebView, type WebViewMessageEvent } from 'react-native-webview';
 import { APP_ORIGIN, HOME_URL, appDeepLink, externalHttps, isTrustedUrl, navigationAction, parseBridgeMessage } from './src/security';
-import { BOOTSTRAP, pushSyncScript, type NativePushStatus } from './src/injected';
+import { BOOTSTRAP, pushSyncScript, safeAreaScript, type NativePushStatus } from './src/injected';
 import { initNotifications, pushPermissionStatus, registerPush } from './src/push';
 
 function Shell() {
@@ -20,6 +20,12 @@ function Shell() {
   const [loadError, setLoadError] = useState(false);
   const [pushNotice, setPushNotice] = useState(false);
   const [webKey, setWebKey] = useState(0);
+  const [barStyle, setBarStyle] = useState<'light' | 'dark'>('light');
+  const insets = useSafeAreaInsets();
+  // The page pads itself via --safe-* CSS vars; the shell must not pad again.
+  const safeScript = useMemo(() => safeAreaScript(insets), [insets.top, insets.bottom, insets.left, insets.right]);
+
+  useEffect(() => { if (isTrustedUrl(currentUrl.current)) web.current?.injectJavaScript(safeScript); }, [safeScript]);
 
   const openBrowser = useCallback(async (candidate: string) => {
     const url = externalHttps(candidate);
@@ -108,12 +114,13 @@ function Shell() {
     if (!message) return;
     if (message.type === 'open') void openBrowser(message.url);
     if (message.type === 'camera:request') void cameraPermission();
+    if (message.type === 'chrome') setBarStyle(message.bar);
     if (message.type === 'ready') void syncPush(false);
     if (message.type === 'push:register') void syncPush(true);
   };
 
-  return <SafeAreaView style={styles.root} edges={['top', 'bottom', 'left', 'right']}>
-    <StatusBar style="dark" />
+  return <View style={styles.root}>
+    <StatusBar style={barStyle} />
     {pushNotice && <View style={styles.notice} accessibilityRole="alert">
       <Text style={styles.noticeText}>Notifications are not available on this device. Open HDS Chat to check new messages.</Text>
       <Pressable accessibilityLabel="Dismiss notification notice" onPress={() => setPushNotice(false)} hitSlop={12}><Text style={styles.dismiss}>×</Text></Pressable>
@@ -142,8 +149,8 @@ function Shell() {
         canGoBack.current = state.canGoBack;
       }}
       onMessage={onMessage}
-      injectedJavaScriptBeforeContentLoaded={BOOTSTRAP}
-      injectedJavaScript={BOOTSTRAP}
+      injectedJavaScriptBeforeContentLoaded={safeScript + BOOTSTRAP}
+      injectedJavaScript={safeScript + BOOTSTRAP}
       injectedJavaScriptBeforeContentLoadedForMainFrameOnly
       injectedJavaScriptForMainFrameOnly
       javaScriptEnabled
@@ -167,7 +174,7 @@ function Shell() {
       onRenderProcessGone={() => setLoadError(true)}
       onFileDownload={event => { void openBrowser(event.nativeEvent.downloadUrl); }}
     />}
-  </SafeAreaView>;
+  </View>;
 }
 
 export default function App() { return <SafeAreaProvider><Shell /></SafeAreaProvider>; }
