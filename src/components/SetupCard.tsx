@@ -15,6 +15,11 @@ export function SetupCard({ inline }: { inline?: boolean }) {
   const [dismissed, setDismissed] = useState(() => inline && Number(localStorage.getItem(DISMISS) || 0) > Date.now());
   useEffect(() => onInstallChange(() => force(x => x + 1)), []);
   useEffect(() => { getConfig().then(c => setApk(c.android_apk_url)).catch(() => {}); }, []);
+  useEffect(() => {
+    const onPush = () => setPush(pushState());
+    window.addEventListener('hds:native-push-status', onPush);
+    return () => window.removeEventListener('hds:native-push-status', onPush);
+  }, []);
 
   const installed = installDone();
   const needInstall = !installed;
