@@ -3,7 +3,7 @@
     "name": "HDS Chat",
     "slug": "hds-chat-android",
     "owner": "sifosman",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "scheme": "hds-chat",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -14,7 +14,8 @@
     ],
     "android": {
       "package": "za.co.hdsgroup.chat",
-      "versionCode": 1,
+      "versionCode": 2,
+      "googleServicesFile": "./google-services.json",
       "softwareKeyboardLayoutMode": "resize",
       "allowBackup": false,
       "edgeToEdgeEnabled": true,
@@ -53,10 +54,17 @@
       ]
     },
     "plugins": [
-      "./plugins/withSecureWebView"
+      "./plugins/withSecureWebView",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#ee1c25"
+        }
+      ]
     ],
     "extra": {
-      "nativePushEnabled": false,
+      "nativePushEnabled": true,
       "eas": {
         "projectId": "18114d09-7139-421f-93b7-817c8f45678b"
       }

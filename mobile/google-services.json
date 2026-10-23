@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1053177215556",
+    "project_id": "hds-chat-app",
+    "storage_bucket": "hds-chat-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1053177215556:android:071eac07821256e9301a11",
+        "android_client_info": {
+          "package_name": "za.co.hdsgroup.chat"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyARzz58kfrKsVo0FovsFXeoKTMnaPTlvLw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -9,14 +9,25 @@ const b64 = (s: string) => {
 export type PushState = 'unsupported' | 'default' | 'granted' | 'denied' | 'native';
 
 export function pushState(): PushState {
-  if (native.on) return (window as any).__hdsNative?.pushStatus === 'granted' ? 'granted' : 'unsupported';
+  if (native.on) {
+    const s = (window as any).__hdsNative?.pushStatus;
+    return s === 'granted' || s === 'denied' || s === 'default' ? s : 'unsupported';
+  }
   if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) return 'unsupported';
   return Notification.permission as PushState;
 }
 
 /** Must be called from a user gesture (button tap). */
 export async function enablePush(): Promise<PushState> {
-  if (native.on) { native.post({ type: 'push:register' }); return pushState(); }
+  if (native.on) {
+    const result = new Promise<PushState>(resolve => {
+      const done = () => { window.removeEventListener('hds:native-push-status', done); resolve(pushState()); };
+      window.addEventListener('hds:native-push-status', done);
+      setTimeout(done, 30000);
+    });
+    native.post({ type: 'push:register' });
+    return result;
+  }
   if (pushState() === 'unsupported') return 'unsupported';
   const perm = await Notification.requestPermission();
   if (perm !== 'granted') { api('/events', { method: 'POST', body: { event: 'push_denied' } }).catch(() => {}); return perm as PushState; }

@@ -8,6 +8,5 @@ ios/
 *.jks
 *.keystore
 credentials.json
-google-services.json
 .env*
 !.env.example

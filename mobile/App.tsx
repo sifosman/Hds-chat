@@ -2,10 +2,12 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, BackHandler, Linking, PermissionsAndroid, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import * as WebBrowser from 'expo-web-browser';
+import * as Notifications from 'expo-notifications';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { WebView, type WebViewMessageEvent } from 'react-native-webview';
 import { APP_ORIGIN, HOME_URL, appDeepLink, externalHttps, isTrustedUrl, navigationAction, parseBridgeMessage } from './src/security';
-import { BOOTSTRAP, PUSH_UNAVAILABLE } from './src/injected';
+import { BOOTSTRAP, pushSyncScript, type NativePushStatus } from './src/injected';
+import { initNotifications, pushPermissionStatus, registerPush } from './src/push';
 
 function Shell() {
   const web = useRef<WebView>(null);
@@ -45,6 +47,34 @@ function Shell() {
     return () => { active = false; deepLink.remove(); };
   }, [navigate]);
 
+  const injectPush = useCallback((status: NativePushStatus, token?: string) => {
+    if (isTrustedUrl(currentUrl.current)) web.current?.injectJavaScript(pushSyncScript(status, token));
+  }, []);
+
+  /** ready => report only (no OS prompt). push:register => ask, then get a token. */
+  const syncPush = useCallback(async (allowPrompt: boolean) => {
+    const status = await pushPermissionStatus();
+    if (status === 'granted' || allowPrompt) {
+      const result = await registerPush();
+      injectPush(result.status, result.token);
+      if (allowPrompt && result.status === 'unavailable') setPushNotice(true);
+      return;
+    }
+    injectPush(status);
+  }, [injectPush]);
+
+  useEffect(() => {
+    initNotifications();
+    const openNotification = (data: Record<string, unknown> | undefined) => {
+      const path = typeof data?.url === 'string' ? data.url : '/';
+      navigate(path.startsWith('/') ? `${APP_ORIGIN}${path}` : path);
+    };
+    const tap = Notifications.addNotificationResponseReceivedListener(response => openNotification(response.notification.request.content.data as Record<string, unknown>));
+    Notifications.getLastNotificationResponseAsync().then(response => { if (response) openNotification(response.notification.request.content.data as Record<string, unknown>); }).catch(() => {});
+    void syncPush(false);
+    return () => tap.remove();
+  }, [navigate, syncPush]);
+
   useEffect(() => {
     const back = BackHandler.addEventListener('hardwareBackPress', () => {
       if (canGoBack.current && web.current && !loadError) { web.current.goBack(); return true; }
@@ -78,17 +108,14 @@ function Shell() {
     if (!message) return;
     if (message.type === 'open') void openBrowser(message.url);
     if (message.type === 'camera:request') void cameraPermission();
-    if (message.type === 'ready' || message.type === 'push:register') {
-      web.current?.injectJavaScript(PUSH_UNAVAILABLE);
-      // No Firebase config: never request push permission or send a fake token.
-      if (message.type === 'push:register') setPushNotice(true);
-    }
+    if (message.type === 'ready') void syncPush(false);
+    if (message.type === 'push:register') void syncPush(true);
   };
 
   return <SafeAreaView style={styles.root} edges={['top', 'bottom', 'left', 'right']}>
     <StatusBar style="dark" />
     {pushNotice && <View style={styles.notice} accessibilityRole="alert">
-      <Text style={styles.noticeText}>Native notifications are not enabled in this preview. Open HDS Chat to check new messages.</Text>
+      <Text style={styles.noticeText}>Notifications are not available on this device. Open HDS Chat to check new messages.</Text>
       <Pressable accessibilityLabel="Dismiss notification notice" onPress={() => setPushNotice(false)} hitSlop={12}><Text style={styles.dismiss}>×</Text></Pressable>
     </View>}
     {!initialReady ? <View style={styles.center}><ActivityIndicator color="#ee1c25" /></View> : loadError ? <View style={styles.center}>

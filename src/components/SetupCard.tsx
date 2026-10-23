@@ -18,9 +18,9 @@ export function SetupCard({ inline }: { inline?: boolean }) {
 
   const installed = installDone();
   const needInstall = !installed;
-  const needPush = push === 'default' || (push === 'native' && !localStorage.getItem('hds.native.push'));
-  if (native.on && push === 'unsupported') return inline ? null : <div className="setup">Notifications are not enabled in this Android pilot build. Check the chat for replies, or use the installed web app with notifications.</div>;
-  if (!needInstall && push === 'denied') return inline ? null : <div className="setup">Notifications are blocked in your browser settings. You can enable them there.</div>;
+  const needPush = push === 'default';
+  if (native.on && push === 'unsupported') return inline ? null : <div className="setup">Notifications are not available on this device. Open the chat to check for replies.</div>;
+  if (!needInstall && push === 'denied') return inline ? null : <div className="setup">Notifications are blocked in your device settings. You can enable them there.</div>;
   if (dismissed || (!needInstall && !needPush)) return inline ? null : <div className="setup done">App installed{push === 'granted' ? ' · notifications allowed' : ''} ✓</div>;
 
   const dismiss = () => { localStorage.setItem(DISMISS, String(Date.now() + 3 * 864e5)); setDismissed(true); };
