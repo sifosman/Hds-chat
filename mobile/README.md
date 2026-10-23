@@ -42,25 +42,22 @@ Bridge messages match the existing PWA:
 | Message | Behavior |
 | --- | --- |
 | `open` with HTTPS `url` | Open browser, never navigate external site in the app |
-| `ready` | Publish native push availability status |
-| `push:register` | Publish unavailable status and show an honest dismissible notice |
+| `ready` | Publish the current native push status; if already granted, also (re)deliver the Expo token |
+| `push:register` | Request Android notification permission, obtain the Expo token, publish status + token |
 | `camera:request` | Shell-injected helper requests camera permission before file capture |
 
 No session tokens are passed through the native bridge. Incoming payloads are size-limited, parsed and validated. Navigation and native origin checks are defense in depth, not protection against scripts already compromised on the trusted PWA origin; retain a restrictive PWA CSP.
 
-## Native push: NOT configured / NOT working
+## Native push (v1.1.0)
 
-Firebase Android configuration and FCM v1 service-account credentials are absent. This preview does not install/register Expo push notifications, request notification permission, fabricate a token, or call `window.__hdsNative.onPushToken` with an invalid value. It sets `window.__hdsNative.pushAvailable = false`, `pushStatus = 'unavailable'`, and emits `hds:native-push-status` with reason `firebase-not-configured`. A native banner explains that users must open the app to check messages.
+Firebase is configured for **this package** (`za.co.hdsgroup.chat`) in Firebase project `hds-chat-app` — NOT the Funxon app or signing identity. `google-services.json` (client config, ships inside the APK) is committed; the FCM v1 service-account private key lives only in EAS credentials (`Push Notifications (FCM V1): Google Service Account Key`), never in git.
 
-The existing PWA currently classifies any native WebView as `native`, which is not proof of notification delivery. Parent should consume the availability status if changing PWA copy. Existing web push in a standalone browser is separate.
-
-To enable later:
-
-1. Create/register **this package** (`za.co.hdsgroup.chat`) in the correct HDS Firebase project. Do not reuse the Funxon package or signing identity.
-2. Add `expo-notifications`, configure its plugin, and supply `google-services.json` through appropriate build configuration. Keep service-account private keys out of git, client bundles and logs.
-3. Upload the correct FCM v1 service-account key to **this EAS project**, then rebuild.
-4. On explicit registration, request Android notification permission and obtain the Expo token with the **HDS** EAS project ID. Deliver it into the trusted top-level page with `window.__hdsNative.onPushToken(token)` (JSON-escaped injection), which the PWA already sends to `/api/push/subscribe` as `kind: 'expo'`.
-5. Handle rotation, foreground notifications, and validated notification-tap navigation. Test actual receipt on a physical Android device, including background/terminated states. Only then claim working push.
+- `expo-notifications` + `expo-device` + `expo-constants`; plugin sets `notification-icon.png` (white HDS glyph) and color `#ee1c25`. `POST_NOTIFICATIONS` and `ExpoFirebaseMessagingService` come from the library manifest.
+- The `messages` Android channel is created at startup — the server already sends `channelId: 'messages'`.
+- `push:register` requests the OS permission, fetches `ExponentPushToken` with this project's EAS ID (`18114d09-7139-421f-93b7-817c8f45678b`, read from `extra.eas.projectId`), then injects `pushSyncScript(status, token)` which sets `__hdsNative.pushStatus`/`pushAvailable`, calls `__hdsNative.onPushToken(token)` (the PWA posts it to `/api/push/subscribe` as `kind: 'expo'`), and dispatches `hds:native-push-status`.
+- `ready` re-syncs status and silently refreshes the token when permission is already granted (rotation coverage).
+- Taps route `data.url` (server sends a path like `/`) through the same `appDeepLink` trust checks; cold-start taps use `getLastNotificationResponseAsync`.
+- Emulators/Play-services-less devices report `unavailable`; the PWA shows the standard unsupported notice. Token delivery to a physical device still needs acceptance testing (background/terminated receipt, tap-through).
 
 ## Uploads, permissions and keyboard
 
