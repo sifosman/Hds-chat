@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api, getConfig } from '../lib/api';
-import { canPromptInstall, installDone, isAndroid, isIOS, onInstallChange, promptInstall } from '../lib/install';
+import { canPromptInstall, installDone, isAndroid, isIOS, markInstalled, nativeAppInstalled, onInstallChange, promptInstall } from '../lib/install';
 import { IconBell, IconChat, IconClose, IconDownload, IconQuotes, IconTag } from './Icons';
 
 const SNOOZE = 'hds.install.snooze';
@@ -15,9 +15,11 @@ export function InstallSheet() {
   useEffect(() => onInstallChange(() => force(x => x + 1)), []);
   useEffect(() => { getConfig().then(c => setApk(c.android_apk_url)).catch(() => {}); }, []);
   useEffect(() => {
+    let live = true;
+    nativeAppInstalled().then(yes => { if (yes && live) markInstalled(); });
     if (installDone() || Number(localStorage.getItem(SNOOZE) || 0) > Date.now()) return;
-    const t = setTimeout(() => setShow(true), 1200);
-    return () => clearTimeout(t);
+    const t = setTimeout(() => { if (live && !installDone()) setShow(true); }, 1500);
+    return () => { live = false; clearTimeout(t); };
   }, []);
   if (!show) return null;
 

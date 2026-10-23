@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api, getConfig, native } from '../lib/api';
-import { canPromptInstall, installDone, isAndroid, isIOS, onInstallChange, promptInstall } from '../lib/install';
+import { canPromptInstall, installDone, isAndroid, isIOS, markInstalled, nativeAppInstalled, onInstallChange, promptInstall } from '../lib/install';
 import { enablePush, pushState, PushState } from '../lib/push';
 import { IconBell, IconClose, IconDownload } from './Icons';
 
@@ -15,6 +15,7 @@ export function SetupCard({ inline }: { inline?: boolean }) {
   const [dismissed, setDismissed] = useState(() => inline && Number(localStorage.getItem(DISMISS) || 0) > Date.now());
   useEffect(() => onInstallChange(() => force(x => x + 1)), []);
   useEffect(() => { getConfig().then(c => setApk(c.android_apk_url)).catch(() => {}); }, []);
+  useEffect(() => { nativeAppInstalled().then(yes => { if (yes) { markInstalled(); force(x => x + 1); } }); }, []);
   useEffect(() => {
     const onPush = () => setPush(pushState());
     window.addEventListener('hds:native-push-status', onPush);

@@ -21,6 +21,17 @@ export const isStandalone = () => native.on || window.matchMedia('(display-mode:
 export const installDone = () => isStandalone() || localStorage.getItem(DONE) === '1';
 export const isIOS = () => /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 export const isAndroid = () => /android/i.test(navigator.userAgent);
+export const markInstalled = () => markDone();
+
+/** Chrome can detect the installed Android app (site declares it via assetlinks.json,
+ *  the app declares this site via its manifest asset_statements). */
+export async function nativeAppInstalled(): Promise<boolean> {
+  if (native.on || !isAndroid()) return false;
+  try {
+    const apps = await (navigator as any).getInstalledRelatedApps?.();
+    return !!apps?.some((a: any) => a.id === 'za.co.hdsgroup.chat');
+  } catch { return false; }
+}
 export const platform = () => (native.on ? 'android-app' : isStandalone() ? 'pwa' : isIOS() ? 'ios-web' : isAndroid() ? 'android-web' : 'desktop');
 
 export async function promptInstall(): Promise<boolean> {

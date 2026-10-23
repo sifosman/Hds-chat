@@ -55,6 +55,7 @@
     },
     "plugins": [
       "./plugins/withSecureWebView",
+      "./plugins/withAssetStatements",
       [
         "expo-notifications",
         {
