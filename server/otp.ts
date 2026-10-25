@@ -1,6 +1,6 @@
 // OTP delivery chain. Order: SMS (if a provider is configured) → WhatsApp → email on file (Brevo).
-// WhatsApp sends exactly one message: free-form inside the customer's open 24h window, else the
-// approved hds_app_otp AUTHENTICATION template (also tried if a free-form send fails mid-window).
+// WhatsApp always sends the approved hds_app_otp AUTHENTICATION template — free-form deliveries
+// inside the 24h window proved unreliable (accept-then-drop), so the window check was removed.
 import { db } from './db.js';
 import { ENV, isTestPhone } from './env.js';
 import { log } from './util.js';
@@ -91,10 +91,7 @@ async function waSendOtpTemplate(phone: string, code: string): Promise<string | 
 
 async function viaWhatsApp(phone: string, code: string): Promise<string | null> {
   if (!ENV.WA_TOKEN || !ENV.WA_PHONE_ID) return 'wa_not_configured';
-  if (await waWindowOpen(phone)) {
-    try { if (!(await waSendText(phone, text(code)))) return null; } catch { /* fall through to the template */ }
-  }
-  // Closed window (or the free-form send raced/failed it): the template is the fallback.
+  // Always the template — no window check, no free-form path.
   return waSendOtpTemplate(phone, code);
 }
 
@@ -135,6 +132,6 @@ export async function deliverOtp(phone: string, code: string, preferred?: string
   log('otp_failed', { phone, reasons });
   return {
     ok: false, reasons,
-    message: 'We couldn\'t send you a code right now. Send us any WhatsApp message on 078 706 0895, then tap "Send code" again and we\'ll send the code to your WhatsApp.',
+    message: 'We couldn\'t send you a code right now. Please try again in a moment — if it keeps failing, message us on WhatsApp 078 706 0895.',
   };
 }

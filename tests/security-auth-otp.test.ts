@@ -40,13 +40,11 @@ describe('OTP delivery safety', () => {
     expect(fetch).toHaveBeenCalledOnce();
     expect(sentBody(0).type).toBe('template');
   });
-  it('falls back to the template when a free-form send inside the window fails', async () => {
+  it('sends only the template even inside the open 24h window — never free-form', async () => {
     f.from.mockReturnValue(result({ created_at: new Date(Date.now() - 1000).toISOString() }));
-    vi.mocked(fetch).mockResolvedValueOnce({ ok: false, status: 400 } as Response).mockResolvedValueOnce({ ok: true } as Response);
     expect(await deliverOtp('27820000001', '123456')).toEqual({ ok: true, channel: 'whatsapp' });
-    expect(fetch).toHaveBeenCalledTimes(2);
-    expect(sentBody(0).type).toBe('text');
-    expect(sentBody(1).type).toBe('template');
+    expect(fetch).toHaveBeenCalledOnce();
+    expect(sentBody(0).type).toBe('template');
   });
   it('fails when the window is closed and the template send is rejected', async () => {
     f.from.mockReturnValue(result({ created_at: null }));
