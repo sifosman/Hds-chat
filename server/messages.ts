@@ -3,9 +3,9 @@ import { broadcast, db, event, rateOk } from './db.js';
 import { ENV } from './env.js';
 import { Ctx, HttpError } from './http.js';
 import { pushToUser } from './push.js';
-import { getQuote } from './quotes.js';
+import { getQuote, phoneVariants } from './quotes.js';
 import { metaInbound, OutMsg, PAY_URL_RE, QUOTE_NUM_RE } from './translate.js';
-import { log, sha256, waId } from './util.js';
+import { log, normalizePhone, sha256, waId } from './util.js';
 
 const MSG_COLS = 'id, direction, sender, sender_name, type, body, media_id, media_url, payload, client_id, wa_id, status, bot_status, created_at, read_at';
 
@@ -120,6 +120,9 @@ function cursorId(value: string | null) {
   return v;
 }
 export async function listMessages(ctx: Ctx, s: Session) {
+  // Mirror fresh WhatsApp-channel rows first so this page already contains them.
+  const mirrored = await mirrorWhatsApp(s.user).catch(e => { log('wa_mirror_failed', { err: (e as Error).message }); return 0; });
+  if (mirrored) await broadcast(s.user.realtime_topic, { type: 'sync' }).catch(() => {});
   const limit = Math.max(1, Math.min(Math.floor(Number(ctx.query.get('limit'))) || 80, 200));
   const after = cursorTime(ctx.query.get('after')), before = cursorTime(ctx.query.get('before'));
   const aid = cursorId(ctx.query.get('after_id')), bid = cursorId(ctx.query.get('before_id'));
@@ -131,6 +134,14 @@ export async function listMessages(ctx: Ctx, s: Session) {
   if (error) throw new HttpError(503, 'messages_unavailable');
   const rows = (data || []).slice(0, limit); if (!after) rows.reverse();
   const last = rows[rows.length - 1];
+  // Mirrored rows keep the WhatsApp timestamp, so a late-logged turn can land before the
+  // client's catch-up window. Include recently-mirrored rows the page would otherwise miss.
+  if (after) {
+    const { data: late } = await db().from('app_messages').select(MSG_COLS).eq('phone', s.user.phone)
+      .gt('payload->>wa_mirror_at', after).order('payload->>wa_mirror_at', { ascending: false }).limit(50);
+    const seen = new Set(rows.map(r => r.id));
+    for (const m of late || []) if (!seen.has(m.id)) rows.push(m);
+  }
   const { data: user } = await db().from('app_users').select('typing_until').eq('id', s.user.id).single();
   return { messages: await hydrate(rows), typing_until: user?.typing_until || null,
     has_more: (data || []).length > limit, next_cursor: last ? {created_at: last.created_at, id: last.id} : null };
@@ -158,6 +169,75 @@ export async function waHistory(ctx: Ctx, s: Session) {
     };
   }).reverse();
   return { messages: rows, has_more: (data || []).length === 100 };
+}
+
+const WA_SRC_COLS = 'id, phone_number, role, message_text, sender_name, created_at, attachment_url, attachment_name, tool_results, conversation_metadata';
+// Give row markers a few seconds to finalize before they can be mirrored; catch-up scans overlap anyway.
+const WA_MIRROR_SETTLE_MS = 5_000, WA_MIRROR_OVERLAP_MS = 5 * 60_000, WA_MIRROR_BATCH = 200;
+
+/** Map one post-cutoff ai_conversations row to an app_messages mirror row, or null if not mirrorable. */
+export function mirrorCandidate(row: any, cutoffMs: number) {
+  const created = Date.parse(row.created_at);
+  if (!Number.isFinite(created) || created <= cutoffMs || !/^[0-9a-f-]{36}$/i.test(row.id)) return null;
+  const tool = row.tool_results && typeof row.tool_results === 'object' ? row.tool_results : {};
+  const meta = row.conversation_metadata && typeof row.conversation_metadata === 'object' ? row.conversation_metadata : {};
+  // App-channel rows already live in app_messages; internal/private rows are not customer messages.
+  if (tool.channel === 'app' || meta.channel === 'app' || tool.automatic_internal || meta.automatic_internal || tool.private === true || meta.private === true) return null;
+  const agent = tool.source === 'chatwoot_reply_bridge' || meta.source === 'chatwoot_reply_bridge';
+  const direction = row.role === 'user' ? 'in' : row.role === 'assistant' ? 'out' : null;
+  if (!direction) return null;
+  const body = (row.message_text || '').replace(/\[IMAGE ANALYSIS:[\s\S]*$/i, '').trim()
+    || (row.attachment_name ? `📎 ${row.attachment_name}` : row.attachment_url ? '📷 Photo' : '');
+  if (!body || body.length > 12_000) return null;
+  return {
+    direction, sender: direction === 'in' ? 'customer' : agent ? 'agent' : 'bot',
+    sender_name: direction === 'in' ? null : agent ? String(row.sender_name || 'HDS team').slice(0, 100) : 'William',
+    body: body.slice(0, 4096), created_at: row.created_at,
+  };
+}
+
+/**
+ * Mirror post-cutoff WhatsApp turns into app_messages so the app shows the same conversation.
+ * Idempotent on client_id 'wam:<ai_id>'; overlapping catch-up scans refresh rows in place.
+ * Never pushes, never touches typing — mirrors are silent timeline rows.
+ */
+export async function mirrorWhatsApp(user: AppUser): Promise<number> {
+  if (user.status !== 'active' || !Number.isFinite(Date.parse(user.wa_history_cutoff))) return 0;
+  const cutoffMs = Date.parse(user.wa_history_cutoff);
+  const { data: last } = await db().from('app_messages').select('created_at')
+    .eq('phone', user.phone).not('payload->>wa_mirror', 'is', null)
+    .order('created_at', { ascending: false }).limit(1).maybeSingle();
+  const since = new Date(Math.max(cutoffMs, last?.created_at ? Date.parse(last.created_at) - WA_MIRROR_OVERLAP_MS : 0)).toISOString();
+  const settled = new Date(Date.now() - WA_MIRROR_SETTLE_MS).toISOString();
+  const { data, error } = await db().from('ai_conversations').select(WA_SRC_COLS)
+    .in('phone_number', phoneVariants(user.phone)).in('role', ['user', 'assistant'])
+    .gt('created_at', user.wa_history_cutoff).gte('created_at', since).lt('created_at', settled)
+    .order('created_at').order('id').limit(WA_MIRROR_BATCH);
+  if (error) throw new HttpError(503, 'mirror_unavailable');
+  const rows = (data || []).filter(r => normalizePhone(r.phone_number) === user.phone).flatMap(r => {
+    const m = mirrorCandidate(r, cutoffMs);
+    if (!m) return [];
+    return [{
+      phone: user.phone, direction: m.direction, sender: m.sender, sender_name: m.sender_name,
+      type: 'text', body: m.body, wa_id: waId(), status: 'read', client_id: 'wam:' + r.id, created_at: m.created_at,
+      payload: { channel: 'whatsapp', wa_mirror: r.id, wa_mirror_at: new Date().toISOString() },
+    }];
+  });
+  if (!rows.length) return 0;
+  const { data: ins, error: upErr } = await db().from('app_messages')
+    .upsert(rows, { onConflict: 'client_id' }).select('id');
+  if (upErr) throw new HttpError(503, 'mirror_unavailable');
+  return ins?.length || 0;
+}
+
+/** Internal-caller entry (pg_net trigger): mirror every pending WhatsApp row for one phone. */
+export async function mirrorWhatsAppForPhone(phone: string): Promise<{ mirrored: number }> {
+  const { data: user } = await db().from('app_users').select('id,phone,name,realtime_topic,status,created_at,wa_history_cutoff')
+    .eq('phone', normalizePhone(phone) || '').eq('status', 'active').maybeSingle();
+  if (!user) return { mirrored: 0 };
+  const mirrored = await mirrorWhatsApp(user as AppUser);
+  if (mirrored) await broadcast(user.realtime_topic, { type: 'sync' }).catch(() => {});
+  return { mirrored };
 }
 
 const ALLOWED_IN = new Set(['text', 'image', 'document', 'audio', 'location', 'interactive']);

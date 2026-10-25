@@ -1,8 +1,8 @@
 import { api } from './api';
-import { initNotifications, pushPermissionStatus, registerPush } from '../push';
+import { initNotifications, pushPermissionStatus, registerPush, setChatVisible } from '../push';
 import type { NativePushStatus } from '../push';
 
-export { initNotifications, pushPermissionStatus };
+export { initNotifications, pushPermissionStatus, setChatVisible };
 export type { NativePushStatus };
 
 export type PushState = NativePushStatus;

@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import * as Clipboard from 'expo-clipboard';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import { Bubble } from '../components/Bubble';
 import { Composer } from '../components/Composer';
 import { Header } from '../components/Header';
@@ -14,7 +15,7 @@ import { QuoteSheet } from '../components/QuoteSheet';
 import { chat, discard, loadHistory, loadOlder, retry, send } from '../lib/chat';
 import { seamActions } from '../lib/preview';
 import { openExternal } from '../lib/api';
-import { pushPermissionStatus } from '../lib/push';
+import { pushPermissionStatus, setChatVisible } from '../lib/push';
 import type { NativePushStatus } from '../lib/push';
 import { dayLabel, msgPreview } from '../lib/format';
 import type { Msg } from '../lib/types';
@@ -51,6 +52,7 @@ export function Chat({ onAskTab, preview }: { onAskTab?: (t: string) => void; pr
   const insets = useSafeAreaInsets();
   const list = useRef<FlatList<Item>>(null);
   const stick = useRef(true);
+  const snapPending = useRef(false);
   const loadingOlder = useRef(false);
   const [viewer, setViewer] = useState<string | null>(null);
   const [quoteRef, setQuoteRef] = useState<string | null>(null);
@@ -65,6 +67,10 @@ export function Chat({ onAskTab, preview }: { onAskTab?: (t: string) => void; pr
   useEffect(() => { if (!typing) return; const t = setTimeout(() => tick(x => x + 1), s.typingUntil - Date.now() + 50); return () => clearTimeout(t); }, [s.typingUntil, typing]);
   useEffect(() => { if (!toast) return; const t = setTimeout(() => setToast(''), 4000); return () => clearTimeout(t); }, [toast]);
   useEffect(() => { if (!preview) pushPermissionStatus().then(setPush).catch(() => {}); }, []);
+  useFocusEffect(useCallback(() => {
+    setChatVisible(true);
+    return () => setChatVisible(false);
+  }, []));
   useEffect(() => {
     const sub = Keyboard.addListener('keyboardDidShow', () => {
       if (stick.current) list.current?.scrollToOffset({ offset: 0, animated: true });
@@ -92,6 +98,32 @@ export function Chat({ onAskTab, preview }: { onAskTab?: (t: string) => void; pr
     const off = e.nativeEvent.contentOffset.y;
     stick.current = off < 120;
     setFab(off > 500);
+  }, []);
+
+  // The newest item sits at index 0 of the inverted list, and
+  // maintainVisibleContentPosition anchors the previously visible row when an
+  // item is inserted before it — so new messages need an explicit scroll to be
+  // revealed. Own sends always snap to the bottom; incoming ones only when the
+  // user is already near it. The anchor compensation lands in the same layout
+  // pass, so the snap is re-asserted from onContentSizeChange.
+  const headKey = items.length ? items[0].key : '';
+  const prevHead = useRef('');
+  useEffect(() => {
+    if (!headKey || headKey === prevHead.current) return;
+    const first = !prevHead.current;
+    prevHead.current = headKey;
+    const own = items[0].kind === 'msg' && items[0].m.direction === 'in';
+    if (!first && !own && !stick.current) return;
+    snapPending.current = true;
+    list.current?.scrollToOffset({ offset: 0, animated: !first });
+  }, [headKey]);
+  const onContentSizeChange = useCallback(() => {
+    if (snapPending.current) {
+      snapPending.current = false;
+      list.current?.scrollToOffset({ offset: 0, animated: true });
+    } else if (stick.current) {
+      list.current?.scrollToOffset({ offset: 0, animated: false });
+    }
   }, []);
   const onEndReached = useCallback(async () => {
     if (loadingOlder.current || preview) return;
@@ -166,6 +198,7 @@ export function Chat({ onAskTab, preview }: { onAskTab?: (t: string) => void; pr
         keyboardShouldPersistTaps="handled"
         keyExtractor={i => i.key}
         onScroll={onScroll}
+        onContentSizeChange={onContentSizeChange}
         scrollEventThrottle={80}
         onEndReachedThreshold={0.2}
         onEndReached={() => void onEndReached()}

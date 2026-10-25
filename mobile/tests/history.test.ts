@@ -205,6 +205,14 @@ test('splitChatCache: whatsapp rows never seed app messages or confirm pending o
   assert.ok(!confirmed.has('cid-other'));
 });
 
+test('splitChatCache: mirrored whatsapp rows stay in the live app stream, not history', () => {
+  const mirror = { id: 'm1', phone: '+27', client_id: 'wam:abc', payload: { channel: 'whatsapp', wa_mirror: 'abc', wa_mirror_at: '2026-01-01T00:00:00Z' } };
+  const old = { id: 'wa-1', phone: '+27', client_id: null, payload: { channel: 'whatsapp' } };
+  const { app, history } = splitChatCache([mirror, old], '+27');
+  assert.deepEqual(app.map(m => m.id), ['m1']);
+  assert.deepEqual(history.map(m => m.id), ['wa-1']);
+});
+
 test('bootHistory: restores the cache then fires the first-page fetch without any sync dependency', async () => {
   const { calls, feed } = rig({
     loadCache: async () => ({ messages: [msg('wa-1', '2024-01-01T00:00:00Z')], hasMore: true }),

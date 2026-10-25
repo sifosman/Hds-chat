@@ -7,15 +7,22 @@ export type NativePushStatus = 'granted' | 'denied' | 'default' | 'unavailable';
 
 const PROJECT_ID: string = Constants.expoConfig?.extra?.eas?.projectId || '';
 
-/** Foreground notifications still surface; taps route via the response listener. */
+/** Set by the Chat screen's focus effect — bot replies already render live there. */
+let chatVisible = false;
+export function setChatVisible(v: boolean) { chatVisible = v; }
+
+/** Foreground alerts are suppressed while the chat is on screen; taps route via the response listener. */
 export function initNotifications() {
   Notifications.setNotificationHandler({
-    handleNotification: async () => ({
-      shouldShowBanner: true,
-      shouldShowList: true,
-      shouldPlaySound: true,
-      shouldSetBadge: false,
-    }),
+    handleNotification: async () => {
+      const show = !chatVisible;
+      return {
+        shouldShowBanner: show,
+        shouldShowList: show,
+        shouldPlaySound: show,
+        shouldSetBadge: false,
+      };
+    },
   });
   if (Platform.OS === 'android') {
     void Notifications.setNotificationChannelAsync('messages', {

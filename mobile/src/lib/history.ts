@@ -28,8 +28,11 @@ export const HISTORY_CHANNEL = 'whatsapp';
 
 export function splitChatCache<M extends { phone?: string | null; client_id?: string | null; payload?: Record<string, any> | null }>(rows: M[], phone: string) {
   const mine = rows.filter(m => !m.phone || m.phone === phone);
-  const app = mine.filter(m => m.payload?.channel !== HISTORY_CHANNEL);
-  const history = mine.filter(m => m.payload?.channel === HISTORY_CHANNEL);
+  // wa_mirror rows are live WhatsApp copies inside app_messages — the timeline stream,
+  // not the read-only pre-cutoff import. They must not re-enter the history bucket.
+  const isHistory = (m: M) => m.payload?.channel === HISTORY_CHANNEL && !m.payload?.wa_mirror;
+  const app = mine.filter(m => !isHistory(m));
+  const history = mine.filter(isHistory);
   const confirmed = new Set(app.map(m => m.client_id).filter(Boolean));
   return { app, history, confirmed };
 }
