@@ -4,7 +4,7 @@ import { db, event, rateOk } from './db.js';
 import { ENV } from './env.js';
 import { gateway, uploadUrl } from './gateway.js';
 import { HttpError, Router } from './http.js';
-import { customerSend, listMessages, mirrorWhatsAppForPhone, retryPending, waHistory } from './messages.js';
+import { customerSend, listMessages, mirrorWhatsAppForPhone, retryPending, waHistory, waNudge } from './messages.js';
 import { getQuote, listQuotes } from './quotes.js';
 import { reconcileAsync } from './reconcile.js';
 import { finishTurn, recoverStalledTurns } from './turns.js';
@@ -118,6 +118,12 @@ router
     const phone = String(ctx.body.phone || '');
     if (!/^[+0-9][0-9 ]{6,20}$/.test(phone)) throw new HttpError(400, 'bad_phone');
     return mirrorWhatsAppForPhone(phone);
+  })
+  .on('POST', '/internal/wa-nudge', async ctx => {
+    requireInternal(ctx);
+    const phone = String(ctx.body.phone || '');
+    if (!/^[+0-9][0-9 ]{6,20}$/.test(phone)) throw new HttpError(400, 'bad_phone');
+    return waNudge(phone, String(ctx.body.action || ''), typeof ctx.body.text === 'string' ? ctx.body.text : undefined);
   })
   .on('POST', '/internal/turn/finish', async ctx => {
     requireInternal(ctx);

@@ -240,6 +240,46 @@ export async function mirrorWhatsAppForPhone(phone: string): Promise<{ mirrored:
   return { mirrored };
 }
 
+/**
+ * Soft app-promotion nudge for WhatsApp traffic, asked by the n8n workflow.
+ *  action 'check': eligible iff the phone is an active app user with recent app-channel
+ *    activity; claims the cooldown slot atomically and returns the text to send.
+ *  action 'sent': records the nudge as an assistant ai_conversations row so William's
+ *    history (and the ai_conversations -> app mirror trigger) sees what was sent.
+ * Never throws on eligibility/claim paths — a nudge is advisory, never worth a 5xx.
+ */
+export const WA_NUDGE_TEXT =
+  '💡 Your full chat history, latest replies and quotes live in the HDS app — open the app to pick up where you left off. (I\'ll still reply here too.)';
+const WA_NUDGE_ACTIVITY_DAYS = 14;
+
+export async function waNudge(phone: string, action: string, text?: string) {
+  const { data: user } = await db().from('app_users').select('phone,status')
+    .in('phone', phoneVariants(normalizePhone(phone) || '')).eq('status', 'active').limit(1).maybeSingle();
+  if (!user) return { nudge: false as const };
+
+  if (action === 'check') {
+    const since = new Date(Date.now() - WA_NUDGE_ACTIVITY_DAYS * 86_400_000).toISOString();
+    const { data: act } = await db().from('app_messages').select('id')
+      .eq('phone', user.phone).eq('direction', 'in')
+      .or('payload->>channel.is.null,payload->>channel.eq.app')
+      .gte('created_at', since).limit(1);
+    if (!act?.length) return { nudge: false as const };
+    const { data: claimed, error } = await db().rpc('claim_wa_nudge', { p_phone: user.phone });
+    if (error || claimed !== true) return { nudge: false as const };
+    return { nudge: true as const, text: WA_NUDGE_TEXT };
+  }
+
+  if (action === 'sent' && typeof text === 'string' && text.trim()) {
+    const { error } = await db().from('ai_conversations').insert({
+      phone_number: user.phone, role: 'assistant', sender_name: 'William',
+      message_text: text.trim().slice(0, 1000),
+      conversation_metadata: { channel: 'whatsapp', source: 'wa_app_nudge' },
+    });
+    return { recorded: !error };
+  }
+  return { nudge: false as const };
+}
+
 const ALLOWED_IN = new Set(['text', 'image', 'document', 'audio', 'location', 'interactive']);
 
 /** Customer sends a message: idempotent on client_id, then forwarded to William as a Meta webhook. */
