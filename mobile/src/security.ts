@@ -37,6 +37,15 @@ export function appDeepLink(value: unknown): string | null {
   } catch { return null; }
 }
 
+/** Extract an invite token only from an exact /i/<token> path — suffixes reject. */
+export function inviteToken(value: unknown): string | null {
+  const deep = appDeepLink(value);
+  if (!deep) return null;
+  try {
+    return new URL(deep).pathname.match(/^\/i\/([A-Za-z0-9_-]{30,100})$/)?.[1] ?? null;
+  } catch { return null; }
+}
+
 export type BridgeMessage = { type: 'ready' } | { type: 'push:register' } | { type: 'camera:request' } | { type: 'open'; url: string } | { type: 'chrome'; bar: 'light' | 'dark' };
 export function parseBridgeMessage(raw: string, sourceUrl: string): BridgeMessage | null {
   if (!isTrustedUrl(sourceUrl) || raw.length > 16384) return null;

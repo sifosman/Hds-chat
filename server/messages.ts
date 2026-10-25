@@ -200,7 +200,7 @@ export async function customerSend(ctx: Ctx, s: Session) {
   const id = waId();
   const row = {
     phone: s.user.phone, direction: 'in', sender: 'customer', type, body: text || null,
-    media_id: media?.id || null, payload: { ...(media ? { filename: media.filename, mime: media.mime } : {}), ...(location ? { location } : {}), ...(type === 'interactive' ? { button: text } : {}), ...(b.reply_to ? { reply_to: String(b.reply_to).slice(0, 80) } : {}) },
+    media_id: media?.id || null, payload: { ...(media ? { filename: media.filename, mime: media.mime } : {}), ...(location ? { location } : {}), ...(type === 'interactive' ? { button: text } : {}), ...(b.reply_to ? { reply_to: String(b.reply_to).slice(0, 80) } : {}), ...(b.reply_preview ? { reply_preview: String(b.reply_preview).slice(0, 160) } : {}) },
     client_id: clientId, wa_id: id, status: 'sent', bot_status: 'pending',
   };
   const { data: saved, error } = await db().from('app_messages').insert(row).select(MSG_COLS).single();
@@ -229,6 +229,8 @@ export async function forwardToBot(user: AppUser, m: any, media: any, location: 
     phone: user.phone, name: user.name || user.phone, waId: m.wa_id,
     type: m.type, text: m.body || '', mediaId: media?.id, mime: media?.mime, filename: media?.filename, location,
     buttonTitle: m.type === 'interactive' ? m.body : undefined,
+    replyTo: typeof m.payload?.reply_to === 'string' ? m.payload.reply_to : undefined,
+    replyPreview: typeof m.payload?.reply_preview === 'string' ? m.payload.reply_preview : undefined,
     phoneNumberId: ENV.APP_PHONE_NUMBER_ID, displayNumber: ENV.APP_DISPLAY_NUMBER,
   });
   for (let attempt = 0; attempt < 2; attempt++) {

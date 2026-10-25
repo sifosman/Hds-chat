@@ -8,11 +8,15 @@ const b64 = (s: string) => {
 
 export type PushState = 'unsupported' | 'default' | 'granted' | 'denied' | 'native';
 
+/** Web push is disabled — notifications go through the native app only. */
+const WEB_PUSH = false;
+
 export function pushState(): PushState {
   if (native.on) {
     const s = (window as any).__hdsNative?.pushStatus;
     return s === 'granted' || s === 'denied' || s === 'default' ? s : 'unsupported';
   }
+  if (!WEB_PUSH) return 'unsupported';
   if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) return 'unsupported';
   return Notification.permission as PushState;
 }

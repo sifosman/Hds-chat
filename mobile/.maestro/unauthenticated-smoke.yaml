@@ -1,0 +1,28 @@
+# Unauthenticated smoke: fresh launch must reach the Login screen — never submit
+# anything (no Send code tap, no keyboard submit, no OTP, no invite, no production
+# API calls beyond what the login screen itself makes).
+appId: za.co.hdsgroup.chat
+---
+- launchApp:
+    permissions: { all: unset }     # never auto-grant/deny — leave runtime permissions untouched
+- assertVisible: "Welcome to HDS"
+- assertVisible: "Cellphone number"
+- assertVisible: "Continue"         # present but NEVER tapped — no OTP is requested
+- tapOn: "82 123 4567"              # focuses the phone field via its placeholder
+- inputText: "123"                  # invalid short number — never submitted
+- tapOn: "Welcome to HDS"           # move focus off the field -> keyboard dismisses
+                                    # (hideKeyboard presses BACK, which exits the app at the Login root)
+- assertVisible: "123"
+- takeScreenshot: login-${DARK_MODE_TAG}
+- pressKey: Home
+- openLink: "hds-chat://app"        # brings the live task forward — Maestro's
+                                    # launchApp force-stops, so it can't test resume
+- assertVisible: "Welcome to HDS"
+- assertVisible: "123"              # live activity kept: typed draft still there
+- takeScreenshot: login-resumed-${DARK_MODE_TAG}
+- stopApp
+- launchApp:                        # full process restart still lands on Login
+    permissions: { all: unset }
+- assertVisible: "Welcome to HDS"
+- assertVisible: "Cellphone number"
+- takeScreenshot: login-relaunch-${DARK_MODE_TAG}

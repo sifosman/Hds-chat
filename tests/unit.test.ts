@@ -81,4 +81,16 @@ describe('metaInbound is parseable by Extract Meta Payload', () => {
     const b = metaInbound({ phone: '27821234567', name: 'S', waId: 'w', type: 'interactive', text: 'YES', phoneNumberId: 'x', displayNumber: 'y' });
     expect(extract(b).text).toBe('YES');
   });
+  it('reply context: wa_id in context + preview prefixed into text', () => {
+    const msg = metaInbound({ phone: '27821234567', name: 'S', waId: 'w2', type: 'text', text: 'yes please', replyTo: 'wamid.Q1', replyPreview: 'Your quote Q-1 total R8,815', phoneNumberId: 'x', displayNumber: 'y' })
+      .entry[0].changes[0].value.messages[0];
+    expect(msg.context).toEqual({ id: 'wamid.Q1' });
+    expect(msg.text.body).toBe('[Re: "Your quote Q-1 total R8,815"] yes please');
+  });
+  it('reply preview never touches interactive button titles', () => {
+    const msg = metaInbound({ phone: '27821234567', name: 'S', waId: 'w3', type: 'interactive', text: 'YES', replyTo: 'wamid.Q1', replyPreview: 'Pay now?', phoneNumberId: 'x', displayNumber: 'y' })
+      .entry[0].changes[0].value.messages[0];
+    expect(msg.interactive.button_reply.title).toBe('YES');
+    expect(msg.context).toEqual({ id: 'wamid.Q1' });
+  });
 });

@@ -1,0 +1,34 @@
+appId: za.co.hdsgroup.chat
+---
+- launchApp:
+    permissions: { all: unset }
+- extendedWaitUntil:
+    visible: "Welcome to HDS"
+    timeout: 40000
+- openLink: "hds-chat://dev-preview?state=chat"
+- extendedWaitUntil:
+    visible: "William · HDS"
+    timeout: 30000
+- assertVisible: "William · HDS"
+- assertVisible: "Anything else I can help with?"
+- takeScreenshot: chat-closed-${DARK_MODE_TAG}
+- swipe:
+    direction: DOWN
+- swipe:
+    direction: DOWN
+- takeScreenshot: chat-carousel-${DARK_MODE_TAG}
+- swipe:
+    direction: UP
+- swipe:
+    direction: UP
+- tapOn: "Message"
+- inputText: "Line one"
+- pressKey: Enter
+- inputText: "Line two"
+- pressKey: Enter
+- inputText: "Line three"
+- takeScreenshot: chat-keyboard-${DARK_MODE_TAG}
+- hideKeyboard
+- takeScreenshot: chat-after-keyboard-${DARK_MODE_TAG}
+- tapOn: "[\\s\\S]*Line three"
+- takeScreenshot: chat-keyboard-reopened-${DARK_MODE_TAG}

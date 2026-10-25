@@ -14,7 +14,8 @@ function cfg() {
 export interface PushNote { title: string; body: string; url?: string; tag?: string }
 
 export async function pushToUser(userId: string, note: PushNote) {
-  const { data: subs } = await db().from('app_push_subscriptions').select('*,app_sessions!inner(revoked_at,expires_at)').eq('user_id', userId)
+  // Web push is disabled: only native-app (expo) subscriptions are notified.
+  const { data: subs } = await db().from('app_push_subscriptions').select('*,app_sessions!inner(revoked_at,expires_at)').eq('user_id', userId).eq('kind', 'expo')
     .is('app_sessions.revoked_at', null).gt('app_sessions.expires_at', new Date().toISOString()).limit(20).abortSignal(AbortSignal.timeout(4000));
   if (!subs?.length) return { sent: 0 };
   let sent = 0;

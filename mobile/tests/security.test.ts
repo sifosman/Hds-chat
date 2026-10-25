@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { APP_ORIGIN, isTrustedUrl, externalHttps, navigationAction, appDeepLink, parseBridgeMessage } from '../src/security.ts';
+import { APP_ORIGIN, isTrustedUrl, externalHttps, navigationAction, appDeepLink, inviteToken, parseBridgeMessage } from '../src/security.ts';
 
 test('exact trusted HTTPS origin only', () => {
   assert.equal(isTrustedUrl(`${APP_ORIGIN}/i/token`), true);
@@ -30,4 +30,14 @@ test('deep links cannot escape trusted app origin', () => {
   assert.equal(appDeepLink(`${APP_ORIGIN}/i/abc`), `${APP_ORIGIN}/i/abc`);
   assert.equal(appDeepLink('hds-chat://app/i/abc?x=1#invite'), `${APP_ORIGIN}/i/abc?x=1#invite`);
   for (const url of ['https://evil.test', 'hds-chat://evil.test/i/abc', 'javascript:alert(1)', 'hds-chat://app/quote.pdf', 'hds-chat://user@app/i/abc', 'hds-chat://app:123/i/abc']) assert.equal(appDeepLink(url), null);
+});
+
+test('invite links require an exact /i/<token> path', () => {
+  const tok = 'a'.repeat(40);
+  assert.equal(inviteToken(`${APP_ORIGIN}/i/${tok}`), tok);
+  assert.equal(inviteToken(`hds-chat://app/i/${tok}`), tok);
+  assert.equal(inviteToken(`${APP_ORIGIN}/i/${tok}?ref=push`), tok);
+  for (const url of [`${APP_ORIGIN}/i/${tok}/extra`, `${APP_ORIGIN}/i/${tok}/`, `${APP_ORIGIN}/i/short`, `${APP_ORIGIN}/i/${tok}%20`, `${APP_ORIGIN}/x/i/${tok}`, 'https://evil.test/i/' + tok]) {
+    assert.equal(inviteToken(url), null, url);
+  }
 });

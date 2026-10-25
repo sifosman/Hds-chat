@@ -1,192 +1,189 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, BackHandler, Linking, PermissionsAndroid, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { Image, Linking, StyleSheet, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import * as WebBrowser from 'expo-web-browser';
 import * as Notifications from 'expo-notifications';
-import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { WebView, type WebViewMessageEvent } from 'react-native-webview';
-import { APP_ORIGIN, HOME_URL, appDeepLink, externalHttps, isTrustedUrl, navigationAction, parseBridgeMessage } from './src/security';
-import { BOOTSTRAP, pushSyncScript, safeAreaScript, type NativePushStatus } from './src/injected';
-import { initNotifications, pushPermissionStatus, registerPush } from './src/push';
+import * as SplashScreen from 'expo-splash-screen';
+import * as Font from 'expo-font';
+import { NavigationContainer, createNavigationContainerRef } from '@react-navigation/native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { inviteToken } from './src/security';
+import { api, auth, setLogoutHandler } from './src/lib/api';
+import { restoreSession } from './src/lib/boot';
+import { send, start, stop } from './src/lib/chat';
+import { cachedUser, cacheUser, wipeLocal } from './src/lib/localdb';
+import { clearOutboxMedia } from './src/lib/outboxstore';
+import * as FileSystem from 'expo-file-system/legacy';
+import { initNotifications, refreshPush } from './src/lib/push';
+import { jostFamily, launchRoute, parsePreviewUrl } from './src/lib/entrance';
+import type { Me } from './src/lib/types';
+import { SignedInTabs } from './src/components/SignedInTabs';
+import { Account } from './src/screens/Account';
+import { Chat } from './src/screens/Chat';
+import { Invite } from './src/screens/Invite';
+import { Login } from './src/screens/Login';
+import { Quotes } from './src/screens/Quotes';
+import { EntrancePreview } from './src/dev/EntrancePreview';
 
+void SplashScreen.preventAutoHideAsync().catch(() => {});
+
+const navRef = createNavigationContainerRef();
+const inviteFromUrl = (url: string | null) => (url ? inviteToken(url) : null);
+// __DEV__ entrance preview: hds-chat://dev-preview?state=NAME renders synthetic,
+// fully inert auth/invite states for screenshots — never reaches production.
+const previewFromUrl = (url: string | null) =>
+  __DEV__ && url ? parsePreviewUrl(url) : null;
 function Shell() {
-  const web = useRef<WebView>(null);
-  const currentUrl = useRef(HOME_URL);
-  const canGoBack = useRef(false);
-  const cameraBusy = useRef(false);
-  const browserBusy = useRef(false);
-  const [uri, setUri] = useState(HOME_URL);
-  const [initialReady, setInitialReady] = useState(false);
-  const [loadError, setLoadError] = useState(false);
-  const [pushNotice, setPushNotice] = useState(false);
-  const [webKey, setWebKey] = useState(0);
-  const [barStyle, setBarStyle] = useState<'light' | 'dark'>('light');
-  const insets = useSafeAreaInsets();
-  // The page pads itself via --safe-* CSS vars; the shell must not pad again.
-  const safeScript = useMemo(() => safeAreaScript(insets), [insets.top, insets.bottom, insets.left, insets.right]);
+  const [me, setMe] = useState<Me | null>(null);
+  const [boot, setBoot] = useState(true);
+  const [invite, setInvite] = useState<string | null>(null);
+  const [urlResolved, setUrlResolved] = useState(false);
+  const [jostLoaded, setJostLoaded] = useState(false);
+  const [preview, setPreview] = useState<string | null>(null);
 
-  useEffect(() => { if (isTrustedUrl(currentUrl.current)) web.current?.injectJavaScript(safeScript); }, [safeScript]);
+  const generation = useRef(0);
+  const cleanup = useRef<Promise<void>>(Promise.resolve());
+  const clearSession = useCallback(() => {
+    ++generation.current;
+    stop(); setMe(null); setBoot(false);
+    cleanup.current = cleanup.current.catch(() => {}).then(async () => { await wipeLocal(); await clearOutboxMedia(FileSystem); });
+    void cleanup.current.catch(() => {});
+  }, []);
+  useEffect(() => setLogoutHandler(clearSession), [clearSession]);
 
-  const openBrowser = useCallback(async (candidate: string) => {
-    const url = externalHttps(candidate);
-    if (!url || browserBusy.current) return;
-    browserBusy.current = true;
-    try { await WebBrowser.openBrowserAsync(url, { showTitle: true, toolbarColor: '#ffffff' }); }
-    catch { Alert.alert('Cannot open link', 'Please try again when a browser is available.'); }
-    finally { browserBusy.current = false; }
+  useEffect(() => {
+    const epoch = ++generation.current;
+    let active = true;
+    const alive = () => active && generation.current === epoch;
+    void restoreSession(
+      { auth, cachedUser, fetchMe: () => api<{ user: Me }>('/me').then(r => r.user), cacheUser },
+      alive,
+      setMe,
+      () => setBoot(false),
+    );
+    return () => { active = false; };
   }, []);
 
-  const navigate = useCallback((candidate: string) => {
-    const url = appDeepLink(candidate);
-    if (!url) return;
-    currentUrl.current = url;
-    canGoBack.current = false;
-    setLoadError(false);
-    setUri(url);
-    setWebKey(value => value + 1);
-  }, []);
+  useEffect(() => {
+    if (!me) return;
+    void start(me).catch(() => {});
+    void refreshPush().catch(() => {});
+    return () => stop();
+  }, [me?.id]);
 
+  // Deep links: verified HTTPS app links + hds-chat:// scheme both land here.
+  // A warm link event bumps the epoch so a late-resolving getInitialURL can
+  // never overwrite a newer invite.
+  const linkEpoch = useRef(0);
   useEffect(() => {
     let active = true;
-    Linking.getInitialURL().then(url => { if (active && url) navigate(url); }).catch(() => {}).finally(() => { if (active) setInitialReady(true); });
-    const deepLink = Linking.addEventListener('url', event => navigate(event.url));
-    return () => { active = false; deepLink.remove(); };
-  }, [navigate]);
-
-  const injectPush = useCallback((status: NativePushStatus, token?: string) => {
-    if (isTrustedUrl(currentUrl.current)) web.current?.injectJavaScript(pushSyncScript(status, token));
+    const epoch = linkEpoch.current;
+    const applyPreview = (url: string | null) => {
+      if (!__DEV__) return;
+      const p = previewFromUrl(url);
+      if (p === 'off') setPreview(null); else if (active && p) setPreview(p);
+    };
+    Linking.getInitialURL().then(url => {
+      const t = inviteFromUrl(url); if (active && t && linkEpoch.current === epoch) setInvite(t);
+      if (active) applyPreview(url);
+    }).catch(() => {}).finally(() => { if (active) setUrlResolved(true); });
+    const sub = Linking.addEventListener('url', e => {
+      const t = inviteFromUrl(e.url); if (t) { ++linkEpoch.current; setInvite(t); }
+      applyPreview(e.url);
+    });
+    return () => { active = false; sub.remove(); };
   }, []);
 
-  /** ready => report only (no OS prompt). push:register => ask, then get a token. */
-  const syncPush = useCallback(async (allowPrompt: boolean) => {
-    const status = await pushPermissionStatus();
-    if (status === 'granted' || allowPrompt) {
-      const result = await registerPush();
-      injectPush(result.status, result.token);
-      if (allowPrompt && result.status === 'unavailable') setPushNotice(true);
-      return;
-    }
-    injectPush(status);
-  }, [injectPush]);
+  // Bundled Jost loads asynchronously in the background; entrance text falls
+  // back to the platform face if it fails.
+  useEffect(() => {
+    let active = true;
+    Font.loadAsync({ [jostFamily]: require('./assets/fonts/Jost.ttf') })
+      .then(() => { if (active) setJostLoaded(true); })
+      .catch(() => {});
+    return () => { active = false; };
+  }, []);
 
+  // Hide the native splash once a drawable entrance frame is laid out — never
+  // behind remote API work.
+  const splashHidden = useRef(false);
+  const onFirstLayout = useCallback(() => {
+    if (splashHidden.current) return;
+    splashHidden.current = true;
+    requestAnimationFrame(() => void SplashScreen.hideAsync().catch(() => {}));
+  }, []);
+
+  // Notification taps route to the chat tab.
   useEffect(() => {
     initNotifications();
-    const openNotification = (data: Record<string, unknown> | undefined) => {
-      const path = typeof data?.url === 'string' ? data.url : '/';
-      navigate(path.startsWith('/') ? `${APP_ORIGIN}${path}` : path);
-    };
-    const tap = Notifications.addNotificationResponseReceivedListener(response => openNotification(response.notification.request.content.data as Record<string, unknown>));
-    Notifications.getLastNotificationResponseAsync().then(response => { if (response) openNotification(response.notification.request.content.data as Record<string, unknown>); }).catch(() => {});
-    void syncPush(false);
+    const open = (data: Record<string, unknown> | undefined) => { if (navRef.isReady()) navRef.navigate('Chat' as never); };
+    const tap = Notifications.addNotificationResponseReceivedListener(r => open(r.notification.request.content.data as Record<string, unknown>));
+    Notifications.getLastNotificationResponseAsync().then(r => { if (r) open(r.notification.request.content.data as Record<string, unknown>); }).catch(() => {});
     return () => tap.remove();
-  }, [navigate, syncPush]);
+  }, []);
 
-  useEffect(() => {
-    const back = BackHandler.addEventListener('hardwareBackPress', () => {
-      if (canGoBack.current && web.current && !loadError) { web.current.goBack(); return true; }
-      return false;
-    });
-    return () => back.remove();
-  }, [loadError]);
-
-  const cameraPermission = async () => {
-    if (cameraBusy.current) return;
-    cameraBusy.current = true;
-    let granted = false;
-    try {
-      if (Platform.OS === 'android') {
-        const permission = PermissionsAndroid.PERMISSIONS.CAMERA;
-        granted = await PermissionsAndroid.check(permission) || (await PermissionsAndroid.request(permission, {
-          title: 'Take a photo for HDS Chat', message: 'Allow camera access to attach a new photo. You can still choose an existing image or file without it.', buttonPositive: 'Continue', buttonNegative: 'Not now',
-        })) === PermissionsAndroid.RESULTS.GRANTED;
-      }
-      if (!granted) Alert.alert('Camera not enabled', 'Choose Photos or Document instead, or allow Camera in Android app settings.');
-    } catch { Alert.alert('Camera unavailable', 'You can still attach an existing image or document.'); }
-    finally {
-      if (isTrustedUrl(currentUrl.current)) web.current?.injectJavaScript(`if (location.origin === ${JSON.stringify(APP_ORIGIN)}) window.__hdsNative?.onCameraPermission?.(${granted}); true;`);
-      cameraBusy.current = false;
-    }
+  const signedIn = async (u: Me) => {
+    const epoch = ++generation.current;
+    const token = auth.token;
+    stop(); setMe(null);
+    if (!token) return;
+    const valid = () => generation.current === epoch && auth.token === token;
+    await cleanup.current.catch(() => {});
+    if (!valid()) return;
+    cleanup.current = wipeLocal().then(() => clearOutboxMedia(FileSystem));
+    await cleanup.current;
+    if (!valid()) return;
+    await cacheUser(token, u, valid);
+    if (!valid()) return;
+    setInvite(null); setMe(u); setBoot(false);
   };
-
-  const onMessage = (event: WebViewMessageEvent) => {
-    if (!isTrustedUrl(currentUrl.current)) return;
-    const message = parseBridgeMessage(event.nativeEvent.data, event.nativeEvent.url);
-    if (!message) return;
-    if (message.type === 'open') void openBrowser(message.url);
-    if (message.type === 'camera:request') void cameraPermission();
-    if (message.type === 'chrome') setBarStyle(message.bar);
-    if (message.type === 'ready') void syncPush(false);
-    if (message.type === 'push:register') void syncPush(true);
+  const logout = async (all: boolean) => {
+    void api('/auth/logout', { method: 'POST', body: { all } }).catch(() => {});
+    auth.clear(); clearSession();
+    await cleanup.current.catch(() => {});
   };
+  const ask = (t: string) => { if (navRef.isReady()) navRef.navigate('Chat' as never); void send({ type: 'text', body: t }).catch(() => {}); };
 
-  return <View style={styles.root}>
-    <StatusBar style={barStyle} />
-    {pushNotice && <View style={styles.notice} accessibilityRole="alert">
-      <Text style={styles.noticeText}>Notifications are not available on this device. Open HDS Chat to check new messages.</Text>
-      <Pressable accessibilityLabel="Dismiss notification notice" onPress={() => setPushNotice(false)} hitSlop={12}><Text style={styles.dismiss}>×</Text></Pressable>
-    </View>}
-    {!initialReady ? <View style={styles.center}><ActivityIndicator color="#ee1c25" /></View> : loadError ? <View style={styles.center}>
-      <Text style={styles.heading}>Unable to load HDS Chat</Text>
-      <Text style={styles.message}>Check your connection and try again. Your session has not been cleared.</Text>
-      <Pressable style={styles.button} onPress={() => { setLoadError(false); setWebKey(value => value + 1); }}><Text style={styles.buttonText}>Try again</Text></Pressable>
-    </View> : <WebView
-      key={webKey}
-      ref={web}
-      source={{ uri }}
-      style={styles.web}
-      // '*' disables react-native-webview's implicit Linking.openURL fallback.
-      // This is NOT the allowlist: native security plugin + callback enforce it.
-      originWhitelist={['*']}
-      onShouldStartLoadWithRequest={request => {
-        const action = navigationAction(request.url);
-        if (action === 'browser') void openBrowser(request.url);
-        return action === 'webview';
-      }}
-      onOpenWindow={event => { if (isTrustedUrl(currentUrl.current)) void openBrowser(event.nativeEvent.targetUrl); }}
-      onNavigationStateChange={state => {
-        if (!isTrustedUrl(state.url)) { web.current?.stopLoading(); return; }
-        currentUrl.current = state.url;
-        canGoBack.current = state.canGoBack;
-      }}
-      onMessage={onMessage}
-      injectedJavaScriptBeforeContentLoaded={safeScript + BOOTSTRAP}
-      injectedJavaScript={safeScript + BOOTSTRAP}
-      injectedJavaScriptBeforeContentLoadedForMainFrameOnly
-      injectedJavaScriptForMainFrameOnly
-      javaScriptEnabled
-      domStorageEnabled
-      sharedCookiesEnabled={false}
-      thirdPartyCookiesEnabled={false}
-      mixedContentMode="never"
-      allowFileAccess={false}
-      allowFileAccessFromFileURLs={false}
-      allowUniversalAccessFromFileURLs={false}
-      javaScriptCanOpenWindowsAutomatically={false}
-      setSupportMultipleWindows
-      mediaPlaybackRequiresUserAction
-      geolocationEnabled={false}
-      webviewDebuggingEnabled={false}
-      allowsBackForwardNavigationGestures
-      startInLoadingState
-      renderLoading={() => <View style={styles.loading}><ActivityIndicator color="#ee1c25" /><Text style={styles.message}>Loading HDS Chat…</Text></View>}
-      onError={() => setLoadError(true)}
-      onHttpError={event => { if (isTrustedUrl(event.nativeEvent.url) && event.nativeEvent.url === currentUrl.current && event.nativeEvent.statusCode >= 400) setLoadError(true); }}
-      onRenderProcessGone={() => setLoadError(true)}
-      onFileDownload={event => { void openBrowser(event.nativeEvent.downloadUrl); }}
-    />}
-  </View>;
+  if (__DEV__ && preview) {
+    return <View style={{ flex: 1 }} onLayout={onFirstLayout}><StatusBar style="light" /><EntrancePreview state={preview} jostLoaded={jostLoaded} /></View>;
+  }
+
+  // The entrance hero is a dark photo and the signed-in header is red — light
+  // status-bar icons throughout.
+  const bar = <StatusBar style="light" />;
+  const route = launchRoute({ bootDone: !boot, signedIn: !!me, initialUrlResolved: urlResolved, invite: !!invite });
+  if (route === 'invite') return <View style={{ flex: 1 }} onLayout={onFirstLayout}>{bar}<Invite token={invite!} onDone={signedIn} onFallback={() => setInvite(null)} jostLoaded={jostLoaded} /></View>;
+  if (route === 'boot') return <View style={[s.splash, { backgroundColor: '#000' }]} onLayout={onFirstLayout}>{bar}<Image source={require('./assets/icon.png')} style={s.splashIcon} /></View>;
+  if (route !== 'app') return (
+    <View style={{ flex: 1 }} onLayout={onFirstLayout}>{bar}
+      <Login onDone={signedIn} jostLoaded={jostLoaded} />
+    </View>
+  );
+
+  // Logged-in screens have the red header (light icons); auth screens follow the theme.
+  return (
+    <View style={{ flex: 1 }} onLayout={onFirstLayout}>{bar}
+    <NavigationContainer ref={navRef} key={`${me!.id}:${generation.current}`}>
+      <SignedInTabs
+        chat={<Chat onAskTab={ask} />}
+        quotes={<Quotes onAsk={ask} />}
+        account={<Account me={me!} onLogout={logout} onAsk={ask} />}
+      />
+    </NavigationContainer></View>
+  );
 }
 
-export default function App() { return <SafeAreaProvider><Shell /></SafeAreaProvider>; }
+export default function App() {
+  return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaProvider>
+        <Shell />
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
+  );
+}
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#ffffff' }, web: { flex: 1, backgroundColor: '#ffffff' },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 28 },
-  loading: { ...StyleSheet.absoluteFillObject, backgroundColor: '#ffffff', justifyContent: 'center', alignItems: 'center' },
-  heading: { fontSize: 22, fontWeight: '700', color: '#17212b', marginBottom: 12 },
-  message: { fontSize: 15, color: '#536471', textAlign: 'center', marginTop: 10 },
-  button: { backgroundColor: '#ee1c25', borderRadius: 12, paddingHorizontal: 24, paddingVertical: 13, marginTop: 22 },
-  buttonText: { color: '#ffffff', fontWeight: '700', fontSize: 16 },
-  notice: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 10, backgroundColor: '#fff2d9', gap: 12 },
-  noticeText: { flex: 1, fontSize: 12, color: '#614300' }, dismiss: { fontSize: 24, color: '#614300' },
+const s = StyleSheet.create({
+  splash: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  splashIcon: { width: 96, height: 96, borderRadius: 22 },
 });

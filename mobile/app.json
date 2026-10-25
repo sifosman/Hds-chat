@@ -3,18 +3,18 @@
     "name": "HDS Chat",
     "slug": "hds-chat-android",
     "owner": "sifosman",
-    "version": "1.1.2",
+    "version": "2.0.4",
     "scheme": "hds-chat",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "platforms": [
       "android"
     ],
     "android": {
       "package": "za.co.hdsgroup.chat",
-      "versionCode": 4,
+      "versionCode": 9,
       "googleServicesFile": "./google-services.json",
       "softwareKeyboardLayoutMode": "resize",
       "allowBackup": false,
@@ -26,13 +26,12 @@
       "permissions": [
         "CAMERA",
         "RECORD_AUDIO",
-        "MODIFY_AUDIO_SETTINGS"
+        "MODIFY_AUDIO_SETTINGS",
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION"
       ],
       "blockedPermissions": [
-        "android.permission.READ_EXTERNAL_STORAGE",
         "android.permission.WRITE_EXTERNAL_STORAGE",
-        "android.permission.READ_MEDIA_IMAGES",
-        "android.permission.READ_MEDIA_VIDEO",
         "android.permission.SYSTEM_ALERT_WINDOW"
       ],
       "intentFilters": [
@@ -54,7 +53,6 @@
       ]
     },
     "plugins": [
-      "./plugins/withSecureWebView",
       "./plugins/withAssetStatements",
       [
         "expo-notifications",
@@ -62,7 +60,21 @@
           "icon": "./assets/notification-icon.png",
           "color": "#ee1c25"
         }
-      ]
+      ],
+      "expo-secure-store",
+      "expo-sqlite",
+      "expo-audio",
+      "expo-video",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/icon.png",
+          "imageWidth": 96,
+          "backgroundColor": "#000000"
+        }
+      ],
+      "expo-asset",
+      "expo-font"
     ],
     "extra": {
       "nativePushEnabled": true,

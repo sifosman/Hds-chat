@@ -98,12 +98,20 @@ export function renderTemplate(bodyText: string, template: any): string {
 export function metaInbound(opts: {
   phone: string; name: string; waId: string; type: string; text?: string; mediaId?: string; mime?: string;
   filename?: string; location?: { lat: number; lon: number; name?: string; address?: string } | null;
-  buttonTitle?: string; phoneNumberId: string; displayNumber: string;
+  buttonTitle?: string; phoneNumberId: string; displayNumber: string; replyTo?: string; replyPreview?: string;
 }) {
   const msg: any = { from: opts.phone, id: opts.waId, timestamp: String(Math.floor(Date.now() / 1000)), type: opts.type };
-  if (opts.type === 'text') msg.text = { body: opts.text || '' };
-  else if (opts.type === 'image') msg.image = { id: opts.mediaId, mime_type: opts.mime, caption: opts.text || undefined };
-  else if (opts.type === 'document') msg.document = { id: opts.mediaId, mime_type: opts.mime, filename: opts.filename || 'document', caption: opts.text || undefined };
+  if (opts.replyTo) msg.context = { id: opts.replyTo };
+  // Surface the quoted snippet to William inside the user text — the extract node
+  // does not read msg.context, so this is the only path that reaches the prompt.
+  // Skipped on interactive (button titles must parse exactly) and caption-less types.
+  const preview = (opts.replyPreview || '').replace(/\s+/g, ' ').trim().slice(0, 120);
+  const text = preview && ['text', 'image', 'document'].includes(opts.type)
+    ? `[Re: "${preview}"] ${opts.text || ''}`.trim()
+    : opts.text;
+  if (opts.type === 'text') msg.text = { body: text || '' };
+  else if (opts.type === 'image') msg.image = { id: opts.mediaId, mime_type: opts.mime, caption: text || undefined };
+  else if (opts.type === 'document') msg.document = { id: opts.mediaId, mime_type: opts.mime, filename: opts.filename || 'document', caption: text || undefined };
   else if (opts.type === 'audio') msg.audio = { id: opts.mediaId, mime_type: opts.mime, voice: true };
   else if (opts.type === 'location' && opts.location) msg.location = { latitude: opts.location.lat, longitude: opts.location.lon, name: opts.location.name, address: opts.location.address };
   else if (opts.type === 'interactive') msg.interactive = { type: 'button_reply', button_reply: { id: 'qr', title: opts.buttonTitle || opts.text || '' } };
