@@ -29,6 +29,8 @@ export const ENV = {
   // OTP delivery
   WA_TOKEN: e('WA_TOKEN'),
   WA_PHONE_ID: e('WA_PHONE_ID', '1193389483847746'),
+  // approved AUTHENTICATION template for OTPs outside the 24h window (WABA 651569391231371)
+  WA_OTP_TEMPLATE: e('WA_OTP_TEMPLATE', 'hds_app_otp'),
   SMS_PROVIDER: e('SMS_PROVIDER'), // 'smsportal' | 'bulksms' | ''
   SMS_USER: e('SMS_USER'),
   SMS_PASS: e('SMS_PASS'),

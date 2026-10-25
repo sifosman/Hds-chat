@@ -1,5 +1,6 @@
-// OTP delivery chain. Order: SMS (if a provider is configured) → WhatsApp reply inside the customer's
-// open 24h window (allowed even while business-initiated sends are blocked) → email on file (Brevo).
+// OTP delivery chain. Order: SMS (if a provider is configured) → WhatsApp → email on file (Brevo).
+// WhatsApp sends exactly one message: free-form inside the customer's open 24h window, else the
+// approved hds_app_otp AUTHENTICATION template (also tried if a free-form send fails mid-window).
 import { db } from './db.js';
 import { ENV, isTestPhone } from './env.js';
 import { log } from './util.js';
@@ -68,10 +69,33 @@ async function waSendMedia(phone: string, type: 'image' | 'video', link: string,
   return r.ok ? null : 'wa_http_' + r.status;
 }
 
-async function viaWhatsAppWindow(phone: string, code: string): Promise<string | null> {
+/** Approved AUTHENTICATION template — delivers outside the 24h window (copy-code button carries the OTP). */
+async function waSendOtpTemplate(phone: string, code: string): Promise<string | null> {
+  if (!ENV.WA_TOKEN || !ENV.WA_PHONE_ID || !ENV.WA_OTP_TEMPLATE) return 'wa_tpl_not_configured';
+  const r = await fetch(`https://graph.facebook.com/v20.0/${ENV.WA_PHONE_ID}/messages`, {
+    method: 'POST', signal: AbortSignal.timeout(10_000), headers: { Authorization: 'Bearer ' + ENV.WA_TOKEN, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      messaging_product: 'whatsapp', to: phone, type: 'template',
+      template: {
+        name: ENV.WA_OTP_TEMPLATE, language: { code: 'en_US' },
+        components: [
+          { type: 'body', parameters: [{ type: 'text', text: code }] },
+          // the copy-code OTP button takes its value like a URL-button parameter
+          { type: 'button', sub_type: 'url', index: '0', parameters: [{ type: 'text', text: code }] },
+        ],
+      },
+    }),
+  });
+  return r.ok ? null : 'wa_tpl_http_' + r.status;
+}
+
+async function viaWhatsApp(phone: string, code: string): Promise<string | null> {
   if (!ENV.WA_TOKEN || !ENV.WA_PHONE_ID) return 'wa_not_configured';
-  if (!(await waWindowOpen(phone))) return 'wa_window_closed';
-  return waSendText(phone, text(code));
+  if (await waWindowOpen(phone)) {
+    try { if (!(await waSendText(phone, text(code)))) return null; } catch { /* fall through to the template */ }
+  }
+  // Closed window (or the free-form send raced/failed it): the template is the fallback.
+  return waSendOtpTemplate(phone, code);
 }
 
 async function viaEmail(phone: string, code: string): Promise<string | null> {
@@ -91,7 +115,7 @@ async function viaEmail(phone: string, code: string): Promise<string | null> {
   */
 }
 
-const CHANNELS: Record<string, (p: string, c: string) => Promise<string | null>> = { sms: viaSms, whatsapp: viaWhatsAppWindow, email: viaEmail };
+const CHANNELS: Record<string, (p: string, c: string) => Promise<string | null>> = { sms: viaSms, whatsapp: viaWhatsApp, email: viaEmail };
 
 export async function deliverOtp(phone: string, code: string, preferred?: string): Promise<R> {
   // Synthetic numbers must never reach any provider, including direct callers/tests.
